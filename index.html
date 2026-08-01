@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Primal Craft - The Complete Temple</title>
+<style>
+    /* =========================================
+       GLOBAL & TEMPLE UI VARIABLES (TOXIC UNDERWORLD)
+       ========================================= */
+    :root {
+        /* The Underworld Aesthetic */
+        --void-black: #07070a; 
+        --blood-red: #7b00ff; /* Glowing Neon Purple */
+        --witchflame-amber: #39ff14; /* Acid/Toxic Green */
+        --parchment: #c0c4cc; 
+        --instruction-grey: #6a6e83; 
+        --panel-bg: rgba(12, 8, 20, 0.95); 
+        
+        /* Tree Specific Variables (Nightside Default) */
+        --abyss-purple: #1a0525;
+        --node-night: radial-gradient(circle at center, #12031a 0%, #000 100%);
+        --active-night: radial-gradient(circle at center, #1f0433 0%, var(--blood-red) 100%);
+        --line-night: rgba(123, 0, 255, 0.4);
+        
+        /* Tree Specific Variables (Dayside Theme) */
+        --celestial-white: #e6ffe6;
+        --divine-gold: #39ff14; 
+        --kether-blue: #05100d;
+        --node-day: radial-gradient(circle at center, #ccffcc 0%, #66ff66 100%);
+        --active-day: radial-gradient(circle at center, #ccffcc 0%, var(--divine-gold) 100%);
+        --line-day: rgba(57, 255, 20, 0.6);
+
+        /* Active Tree Theme Mapping */
+        --tree-bg-color: var(--void-black);
+        --tree-panel-bg: rgba(10, 5, 15, 0.95);
+        --tree-text-main: #c2b8a3;
+        --tree-text-title: var(--witchflame-amber);
+        --tree-text-accent: var(--blood-red);
+        --node-bg: var(--node-night);
+        --node-active: var(--active-night);
+        --node-border: var(--blood-red);
+        --line-color: var(--line-night);
+        --glow: 0 0 15px rgba(123, 0, 255, 0.6);
+        --active-glow: 0 0 25px rgba(57, 255, 20, 0.8);
+    }
+
+    body.dayside {
+        --tree-bg-color: var(--kether-blue);
+        --tree-panel-bg: rgba(15, 32, 39, 0.95);
+        --tree-text-main: #e0e5ec;
+        --tree-text-title: var(--divine-gold);
+        --tree-text-accent: #78a1d1;
+        --node-bg: var(--node-day);
+        --node-active: var(--active-day);
+        --node-border: var(--celestial-white);
+        --line-color: var(--line-day);
+        --glow: 0 0 15px rgba(242, 201, 76, 0.4);
+        --active-glow: 0 0 25px rgba(255, 255, 255, 0.9);
+        background-color: var(--tree-bg-color);
+    }
+
+    body {
+        margin: 0; padding: 0;
+        background-color: var(--void-black);
+        color: var(--parchment);
+        font-family: 'Times New Roman', Times, serif;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+        transition: background-color 1.5s ease;
+    }
+
+    /* =========================================
+       THE OATH GATE
+       ========================================= */
+    #warning-gate {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 10000; display: flex; justify-content: center; align-items: center;
+        background: rgba(2, 2, 2, 0.95); backdrop-filter: blur(12px);
+        transition: all 2.5s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .gate-box {
+        max-width: 650px; padding: 50px; text-align: center;
+        background: rgba(10, 8, 5, 0.8); border: 1px solid rgba(57, 255, 20, 0.3);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(123, 0, 255, 0.2);
+    }
+    .gate-shattered { opacity: 0; transform: scale(1.2) translateY(50px); filter: blur(15px); pointer-events: none; }
+    .gate-box h1 { color: var(--witchflame-amber); text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 15px rgba(57, 255, 20, 0.4); }
+    .input-group input[type="text"] {
+        background-color: rgba(0, 0, 0, 0.5); border: 1px solid transparent; border-bottom: 2px solid var(--blood-red);
+        color: var(--witchflame-amber); font-size: 1.4rem; text-align: center; padding: 15px; width: 85%; outline: none; transition: all 0.3s ease;
+    }
+    .gate-btn {
+        margin-top: 30px; background-color: transparent; color: var(--witchflame-amber); border: 1px solid var(--blood-red);
+        padding: 15px 40px; font-size: 1.1rem; text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+    }
+    .gate-btn:hover { background-color: var(--blood-red); color: var(--void-black); box-shadow: 0 0 15px rgba(123, 0, 255, 0.6); }
+    #oath-error { color: #ff5555; margin-top: 20px; opacity: 0; transition: opacity 0.3s; }
+
+    /* =========================================
+       THE TEMPLE MODAL SYSTEM
+       ========================================= */
+    #temple-modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.9); z-index: 9000;
+        display: flex; justify-content: center; align-items: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+    }
+    #temple-modal-overlay.active { opacity: 1; pointer-events: all; }
+    .temple-modal-box {
+        background: var(--panel-bg); border: 2px solid var(--witchflame-amber);
+        padding: 50px; max-width: 600px; text-align: center;
+        box-shadow: 0 0 50px rgba(123, 0, 255, 0.5);
+        transform: translateY(-30px) scale(0.95); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    #temple-modal-overlay.active .temple-modal-box { transform: translateY(0) scale(1); }
+    .temple-modal-box h1 { color: var(--witchflame-amber); text-transform: uppercase; letter-spacing: 4px; margin-top: 0; }
+    .temple-modal-box p { font-size: 1.2rem; line-height: 1.6; color: var(--parchment); margin-bottom: 40px; }
+
+    /* =========================================
+       BOOK UI (STAGE & SIDEBAR)
+       ========================================= */
+    #book-app { display: none; flex-direction: row; width: 100%; height: 100%; opacity: 0; transition: opacity 2s ease-in; }
+    .sidebar { width: 320px; background: var(--panel-bg); border-right: 2px solid var(--witchflame-amber); display: flex; flex-direction: column; z-index: 10; }
+    .book-title { color: var(--witchflame-amber); text-align: center; text-transform: uppercase; letter-spacing: 4px; padding: 30px 20px; border-bottom: 1px solid #222; font-size: 1.4rem; }
+    .nav-btn { background: transparent; border: none; color: #555; padding: 20px; text-align: left; font-family: inherit; font-size: 1.1rem; cursor: pointer; border-left: 3px solid transparent; transition: all 0.3s; border-bottom: 1px solid #111; }
+    .nav-btn:hover { color: var(--parchment); background: rgba(57, 255, 20, 0.05); }
+    .nav-btn.active { color: var(--witchflame-amber); border-left: 3px solid var(--witchflame-amber); background: rgba(57, 255, 20, 0.1); }
+    .nav-btn.locked { color: #333; cursor: not-allowed; border-left: 3px solid transparent; text-shadow: none; }
+    .nav-btn.locked:hover { background: transparent; color: #333; }
+    .stage { flex-grow: 1; padding: 50px; overflow-y: auto; position: relative; background: radial-gradient(circle at center, #0a0a0a 0%, var(--void-black) 100%); }
+    .module-header { text-align: center; margin-bottom: 40px; }
+    .module-header h1 { color: var(--witchflame-amber); letter-spacing: 3px; text-transform: uppercase; font-size: 2rem; margin-bottom: 10px; }
+    .warning-banner { display: inline-block; border: 1px solid var(--blood-red); background: rgba(123, 0, 255, 0.15); padding: 10px 20px; color: #ff5555; font-size: 0.9rem; text-transform: uppercase; font-weight: bold; }
+    .step-container { max-width: 800px; margin: 0 auto; display: none; animation: fadeIn 0.8s forwards; }
+    .step-container.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    h2 { color: var(--witchflame-amber); font-size: 1.5rem; margin-bottom: 20px; }
+    .theory-text { font-size: 1.15rem; line-height: 1.7; margin-bottom: 25px; color: #ccc; }
+    .instruction-block { background: rgba(57, 255, 20, 0.05); border-left: 3px solid var(--witchflame-amber); padding: 25px; margin: 30px 0; font-size: 1.05rem; line-height: 1.6; color: var(--instruction-grey); font-style: italic; }
+    .instruction-block strong { color: var(--witchflame-amber); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1.5px; display: block; margin-bottom: 12px; font-style: normal; }
+    .incantation-block { font-size: 1.35rem; line-height: 1.9; color: var(--witchflame-amber); text-align: center; margin: 40px 0; }
+    .controls { max-width: 800px; margin: 50px auto 0 auto; display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid #222; }
+    .btn-action { background: transparent; color: var(--parchment); border: 1px solid #555; padding: 12px 30px; font-family: inherit; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; }
+    .btn-action:hover:not(:disabled) { border-color: var(--witchflame-amber); color: var(--witchflame-amber); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+    .btn-action:disabled { opacity: 0.2; cursor: not-allowed; }
+    .progress-tracker { display: flex; gap: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #222; transition: all 0.3s; }
+    .dot.active { background: var(--witchflame-amber); box-shadow: 0 0 10px var(--witchflame-amber); }
+
+    /* =========================================
+       UNDILUTED PRAXIS (LORE TOOLTIPS)
+       ========================================= */
+    .lore-tooltip { position: relative; display: inline-block; border-bottom: 1px dotted #ff5555; cursor: help; color: #ff8888; }
+    .lore-tooltip .tooltip-text { visibility: hidden; width: 320px; background-color: var(--void-black); color: #ddd; text-align: left; border: 1px solid var(--blood-red); padding: 15px; border-radius: 4px; position: absolute; z-index: 100; top: 150%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; font-size: 0.85rem; font-style: normal; line-height: 1.5; box-shadow: 0 0 20px rgba(123, 0, 255, 0.8); }
+    .lore-tooltip .tooltip-text::after { content: ""; position: absolute; bottom: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: transparent transparent var(--blood-red) transparent; }
+    .lore-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
+    .ritual-action { color: #ff5555; font-weight: bold; display: block; margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(123, 0, 255, 0.5); text-shadow: 0 0 5px rgba(123, 0, 255, 0.2); }
+
+    /* =========================================
+       THE INTERACTIVE TREE UI - RESIZED
+       ========================================= */
+    #tree-app { display: none; flex-direction: row; width: 100%; height: 100%; position: relative; z-index: 10; opacity: 0; transition: opacity 2s ease-in; background: radial-gradient(circle at center left, rgba(0,0,0, 0.3) 0%, transparent 80%); }
+    #top-controls { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 20px; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 30px; border: 1px solid var(--node-border); backdrop-filter: blur(5px); transition: border-color 1.5s ease; }
+    .mode-btn { background: transparent; border: none; color: #777; font-family: inherit; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; font-weight: bold; transition: color 0.3s ease; }
+    .mode-btn.active { color: var(--tree-text-title); text-shadow: 0 0 10px var(--tree-text-title); }
+    #abyss-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: none; }
+    
+    #tree-section { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; padding: 80px 20px 20px 20px; overflow-y: auto; }
+    #tree-container { position: relative; width: 100%; max-width: 400px; height: 600px; }
+    
+    #tunnels-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    .tunnel-line { stroke: var(--line-color); stroke-width: 3; transition: stroke 0.5s ease, stroke-width 0.5s ease, filter 0.5s ease; }
+    .tunnel-hitbox { stroke: transparent; stroke-width: 20; cursor: pointer; }
+    .tunnel-hitbox:hover + .tunnel-line, .tunnel-line:hover { stroke: var(--tree-text-title); stroke-width: 5; filter: drop-shadow(0 0 8px var(--tree-text-title)); }
+    .tunnel-line.active { stroke: var(--tree-text-title); stroke-width: 5; filter: drop-shadow(0 0 8px var(--tree-text-title)); }
+    
+    .sphere-node { position: absolute; width: 45px; height: 45px; background: var(--node-bg); border: 2px solid var(--node-border); border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; cursor: pointer; display: flex; justify-content: center; align-items: center; color: #888; font-weight: bold; font-size: 1rem; box-shadow: var(--glow); transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1), background 1.5s ease; }
+    body.dayside .sphere-node { color: #333; }
+    .sphere-node:hover, .sphere-node.active { border-color: var(--tree-text-title); color: var(--tree-text-title); box-shadow: var(--active-glow); }
+    .sphere-node:hover { transform: translate(-50%, -50%) scale(1.15); }
+    .sphere-node.active { background: var(--node-active); color: var(--tree-bg-color); transform: translate(-50%, -50%) scale(1.25); }
+    .sphere-label { position: absolute; bottom: -20px; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--tree-text-main); text-shadow: 0 0 5px #000; pointer-events: none; transition: color 1.5s ease; }
+    
+    #grimoire-panel { width: 450px; background: var(--tree-panel-bg); border-left: 2px solid var(--node-border); padding: 40px; box-shadow: -10px 0 30px rgba(0,0,0,0.8); display: flex; flex-direction: column; overflow-y: auto; position: relative; transition: background 1.5s ease, border-color 1.5s ease; z-index: 10; }
+    #panel-content { opacity: 0; transform: translateX(20px); transition: all 0.6s ease; }
+    #panel-content.visible { opacity: 1; transform: translateX(0); }
+    .panel-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+    .q-subtitle { color: #888; font-size: 1.2rem; letter-spacing: 5px; margin-bottom: 5px; text-transform: uppercase; }
+    .q-title { color: var(--tree-text-title); font-size: 2.2rem; text-transform: uppercase; letter-spacing: 4px; margin: 0 0 10px 0; text-shadow: 0 0 10px rgba(57, 255, 20, 0.3); }
+    .q-translation { color: var(--tree-text-accent); font-style: italic; font-size: 1.2rem; margin-bottom: 15px; }
+    .q-ruler { background: rgba(255,255,255,0.05); border: 1px solid var(--tree-text-accent); padding: 10px; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; color: var(--tree-text-accent); display: inline-block; }
+    .q-description { font-size: 1.15rem; line-height: 1.7; margin-bottom: 30px; color: var(--tree-text-main); }
+    .gnosis-block { background: rgba(255,255,255,0.02); border-left: 3px solid var(--tree-text-title); padding: 25px; font-size: 1.05rem; line-height: 1.6; color: var(--tree-text-main); }
+    .gnosis-block strong { color: var(--tree-text-title); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1.5px; display: block; margin-bottom: 10px; }
+    #initial-prompt { text-align: center; color: #888; font-style: italic; font-size: 1.2rem; margin-top: 50%; transform: translateY(-50%); }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--witchflame-amber); border-radius: 4px;}
+</style>
+</head>
+<body>
+
+    <!-- THE OATH GATE -->
+    <div id="warning-gate">
+        <div class="gate-box">
+            <h1>Warning: Extreme Spiritual Danger</h1>
+            <p>The rites contained within represent the pinnacle of the Primal Craft and the most dangerous spiritual undertaking imaginable.</p>
+            <div class="input-group">
+                <p style="font-size: 0.9rem; font-style: italic; color: var(--parchment); margin-bottom:10px;">To break the seal, type: <span style="color:var(--witchflame-amber); font-weight:bold;">I accept the Oath</span></p>
+                <input type="text" id="oath-input" placeholder="Type the words of acceptance..." autocomplete="off">
+                <br>
+                <button class="gate-btn" onclick="checkOath()">Enter the Temple</button>
+                <p id="oath-error">The words are incorrect. The gate remains sealed.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- THE TEMPLE MODAL SYSTEM -->
+    <div id="temple-modal-overlay">
+        <div class="temple-modal-box">
+            <h1 id="modal-title">Book Complete</h1>
+            <p id="modal-text">The transition is ready.</p>
+            <button class="gate-btn" id="modal-btn">Proceed</button>
+        </div>
+    </div>
+
+    <!-- BOOK UI (Modules 1-18) -->
+    <div id="book-app">
+        <div class="sidebar" id="sidebar-nav">
+            <div class="book-title" id="sidebar-book-title">Queen of Hell</div>
+            <!-- Dynamic Nav Buttons -->
+        </div>
+        <div class="stage">
+            <div class="module-header">
+                <h1 id="ui-module-title">Select a Module</h1>
+                <div class="warning-banner" id="ui-module-warning" style="display:none;"></div>
+            </div>
+            <div id="dynamic-steps-container"></div>
+            <div class="controls" id="ui-controls" style="display:none;">
+                <button class="btn-action" id="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <div class="progress-tracker" id="ui-tracker"></div>
+                <button class="btn-action" id="btn-next" onclick="changeStep(1)">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE TREE UI -->
+    <div id="tree-app">
+        <div id="top-controls">
+            <button class="mode-btn active" id="btn-night" onclick="setMode('night')">Nightside (Qliphoth)</button>
+            <span style="color: #555;">|</span>
+            <button class="mode-btn" id="btn-day" onclick="setMode('day')">Dayside (Sephiroth)</button>
+        </div>
+        <canvas id="abyss-canvas"></canvas>
+        <div id="tree-section">
+            <div id="tree-container">
+                <svg id="tunnels-svg"></svg>
+                <div id="nodes-container"></div>
+            </div>
+        </div>
+        <div id="grimoire-panel">
+            <div id="initial-prompt">Select a Sphere or Connecting Path to unlock its Gnosis.</div>
+            <div id="panel-content">
+                <div class="panel-header">
+                    <div class="q-subtitle" id="ui-subtitle">Sphere 10</div>
+                    <h1 class="q-title" id="ui-title">Name</h1>
+                    <div class="q-translation" id="ui-translation">Translation</div>
+                    <div class="q-ruler" id="ui-ruler">Ruler</div>
+                </div>
+                <div class="q-description" id="ui-desc">Lore goes here.</div>
+                <div class="gnosis-block">
+                    <strong id="ui-gnosis-title">Gnosis</strong>
+                    <div id="ui-gnosis">Specific ritual instructions go here.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    /* =========================================================
+       DATA PAYLOADS (BOOKS 1, 2, 3)
+       ========================================================= */
+    const bookOneData = [
+        { title: "Module 1: Opening the Dark Path", warning: "Extreme Spiritual Danger: Risk of mind/soul destruction if unprepared.", steps: [ { title: "The Throne of Hecate", theory: "The throne of Hecate exists beyond Kether and its shadow Thaumiel, in the darkness that reaches into eternity. She is the Supreme Dark Goddess of the Void and the absolute source of all magick. The practitioner must look beyond human constructs of good and evil.", instruction: "Ensure you are in complete isolation. Ground yourself. Dedication to this path requires initiation—an acceptance into the dark fold that permanently stains the soul." }, { title: "The Call unto the Dark Queen", instruction: "Stand within the center of your designated ritual space. Face the direction of the Moon (or the Western Gate). Speak the words slowly to draw Hecate to the lunar gate.", incantation: "\"I call to you Keeper of the Secret keys;\nMistress of the Night side; Goddess of all Witchcraft;\nI call to you Hecate; Hear me say your name;\nYou are Goddess of the Three roads; Witch flame, Queen of old;\nThrough Lunar Gate I seek you; Lady of Shadowlands;\nIn Night's Circle I stand alone; As Follower and Lover;\nOffered unto you; Let me feel your Dark Embrace;\nO green-eyed Queen of Hell.\"" }, { title: "The Binding of the Elements", instruction: "Visualize a sphere of impenetrable darkness expanding from your center. Trace the invoking pentagram of earth (the Five Fold Star) in the air before you, sealing the etheric vortex.", incantation: "\"I Bind unto this Sphere of Darkness the Four Mighty Elements;\nIn the Name and Power of the Five Fold Star;\nIn this Binding I open the Etheric Vortex;\nUnder the Dominion of Hecate, Queen of all Dark Magick;\nI Ensorcell now all Power contained within this Sphere.\"" }, { title: "The Rite of the Torchbearer", instruction: "Kneel if compelled, or stand firm. Visualize the Witchflame igniting within your own blood. Speaking these words constitutes a permanent pact.", incantation: "\"I call to The Queen of the Witch's Arte; I call to The Goddess of Night;\nWith committed Heart And Steadfast Mind;\nIn Flesh And Spirit, I offer myself to thee Dark Hecate;\nThrough the Western Gate I walk to Your Throne;\nAnother Soul passing into Your Care;\nTo Be Reborn before the next Sun Rises;\nEmbraced in Your Power, remade in Your Name;\nThe Body shall die, the Flesh shall depart;\nThe Spirit and Mind infused with Thine Own;\nBefore the day Breaks I will return to this Place;\nThe Flame of the Witch Queen burning inside;\nThe Shadow of Night shall flow through my Spirit;\nOpen the Gateways of Power for this Child of Witchflame;\nWith Mine own Life's Blood I light these First Fires;\nBurning that which was in the Dark Goddess' Name;\nAlone I Stand, in the Circle of Night;\nAs in Love and Devotion I say I am Yours, Hecate;\nMighty Witch Goddess, Queen of all Hell.\"" } ] },
+        { title: "Module 2: Chrystalline Transmutation", warning: "Sacred Congress: Requires absolute energetic focus.", steps: [ { title: "The Sexual Engine", theory: "Hecate utilizes the sexual current as a primary engine for spiritual progression. Through sexual magickal praxis, the kalas of the Goddess are drawn into the practitioner, which induces the 'chrystalline transmutation of the subtle bodies'.", instruction: "Prepare the temple for sacred union. Ensure the physical space is entirely secluded. This alters the energetic anatomy, preparing the soul for the transdimensional rise." }, { title: "Prayer for Sealing the Circle", instruction: "Before congress begins, the perimeter must be locked against all parasitic entities. Recite this sealing prayer to ensure only the kalas of the Goddess enter the space.", incantation: "\"Hecate, Lady of Dark Magick; Goddess of all Witches;\nQueen of the Night Realm; In your Name and Power I bind this Circle;\nThat it be closed to all others;\nThe Temple I open to you in this Witch's Arte;\nHold fast and bind tight all others from this place;\nBanishing that which does not belong;\nOnly in your Embrace shall I lay;\nOnly your Spirit shall I feel;\nStay Night's Kin at the circle's edge;\nThat only we two may be as One;\nI seal this circle of the Ancient Craft;\nIn Power; In Love; In the name of Hecate.\"" } ] },
+        { title: "Module 3: The Rites of Possession", warning: "Total Surrender: The practitioner must invite the Goddess directly into the flesh.", steps: [ { title: "The Call of Unity", theory: "The rites of possession are the absolute height of worship. To achieve true connection and transmutation, the practitioner must invite the Goddess directly into the flesh and mind.", instruction: "This invocation is to be performed precisely at the peak of sexual magickal congress. Maintain the visual focus upon the Lunar Gate as the energy apex is reached." }, { title: "The Prayer of Unity", instruction: "Speak these words as the spiritual and physical vessels open, allowing the First Goddess to cross the threshold into your physical form.", incantation: "\"First Goddess, Lady of Darkness, I call to you attend this rite Hecate;\nQueen of Transformation, Hear my prayer, Answer my call to thee Hecate;\nGoddess of All Witchcraft, Keeper of the Secret Keys, Let me hear your voice in the stillness of night, Hecate;\nI reach out to you through the Lunar Gate, Join me now Hecate;\nMother of Lucifer, ruler of the Shadow Realms, Embrace my love through night and day Hecate;\nBefore the Sun was born, in Darkness Pure, You reigned supreme. I pray to thee Hecate;\nThrough the Seven Stellar Gates, Beyond Circles of All Time I look for you Hecate;\nJoin me now in this feast of Flesh and Mind, In Passion and in Love Hecate;\nBy the Coven by the Star, Through the Gate of Three Crossed Staves, I seek your form Hecate;\nIn this Circle, Our Temple, I Offer Forth Myself, And Sacrifice My Love to You Hecate;\nThrough the Gate of Moon to the Crossed Roads of Dark Dream Meadows;\nIn Power and In Love, In Desire and in Lust;\nI call you to join me as ONE, Lover and Divine,\nAs thirteen times I say, come unto me in Unity, Queen of Hell Hecate.\"" } ] },
+        { title: "Module 4: Spirit Pots (Magickal Wombs)", warning: "Necromantic Architecture: Bound spirits must be handled with precise intent.", steps: [ { title: "Constructing the Womb", theory: "By the Witch's craft, a spiritual womb is constructed to house familiar spirits. A pot made of clay or wood must be heavily sigilised inside and out, consecrated with sexual fluids imbued with Hecate's kalas, and buried in the earth to incubate the spirit.", instruction: "Have the prepared, sigilized clay or wooden vessel open before you on the altar. Prepare your bodily fluids (kalas) to consecrate the interior." }, { title: "The Prayer of Creation", instruction: "Hold your hands over the open vessel. Visualize the Witchflame pouring from your palms into the pot as you speak the words of creation.", incantation: "\"Spirit of Light in the Darkness; Ignited by the Torch of Witchflame;\nBound by the Power of the Goddess; Bound to the Will of Her kin;\nCreated in the Circle, the Cloak of Night;\nSpirit of Witchblood, Spawn of my Seed;\nIn the Name of the Trident of the Witch's Arte;\nUnder Moonlit Glow and Dark Star's Night;\nI Empower you now with my Magickal Essence;\nWith the Essence of the Dark Queen of Hell you are made;\nSubject to Her Will and Conjured in Her Name.\"" }, { title: "Sealing and Binding", instruction: "Seal the lid of the vessel. Trace the Pentagram of Witchblood over the seal.", incantation: "\"Bound by the Might of the Queen of all Hell;\nFastened by the Folds of the Five Point Star;\nThree times sealed in the Pentagram of Witchblood;\nThe Name on the seal is Hecate;\nThe Spirit which binds it, is the Strength of Her Will;\nThree Keys open the Silver Star's Lock;\nThese hands are those of the Goddess' Child;\nBlessed in Her Blood, Reborn in Her Name;\nBy the Lore and power of the Dark Queen of Night;\nHere is sealed the Womb of Witchflame.\"" }, { title: "Sealing the Earth", instruction: "Take the sealed pot to the burial site. As you cover it with earth, invoke the protection of King Belial.", incantation: "\"The Ground in which this rests is both Cursed and Blessed;\nNone shall know this work but I;\nKing Belial's Seal guards this resting place;\nHis Power and Cunning infused in this Earth.\"" }, { title: "Exhumation (The Opening)", instruction: "Return to the site upon the Full Moon. Speak this as you unearth the incubated spirit.", incantation: "\"The Hands of the Dark Horned King Of Hell;\nUnbind the Seal upon this place;\nThe Lord of the Earth is the Lord of the Dark Curse;\nHis is the Power which protects this Work.\"" } ] },
+        { title: "Module 5: The Toad Rite", warning: "Temporal Lock: Requires three nights in a graveyard. The toad MUST already be dead.", steps: [ { title: "The Omen Carrier", theory: "The toad is an omen carrier of Hecate, symbolizing transition and transmutation. This rite initiates the crossing of the dark Abyss.", instruction: "Locate a naturally deceased toad. Torturing a living toad will mirror an agonizing, drawn-out death process upon your own soul in the wastelands. Prepare to strip the body to its bones in an anthill." }, { title: "The Oath of Witchflaming", instruction: "Speak this oath when you claim the body of the deceased toad from the earth.", incantation: "\"Queen of Hell, Queen of Witchfire; Keeper of the Hidden Secrets of Magick;\nAs your Child I accept this, the Oath of Witchflaming;\nBlessed be the Creature whose Spirit is now passed;\nThe Flesh of your Servant Shall nourish the Daemon;\nThe Charm within awaiting the Mystical Hand;\"" }, { title: "Ensorcelling the Charm", instruction: "After the anthill has stripped the flesh, select the specific bone (the charm) from running water. Hold it aloft.", incantation: "\"Lucifer's gnosis ensorcelled to the Bone;\nThe Flames of Hell spiral through Empyrean Fire;\nRevealing Secrets of the Wise in the Toadman's Charm;\nHecate's Kin Empower this Witch's Sacred Arte.\"\n\n\"The Forces of the Trident bound unto the Charm;\nOpen the Path to the Secrets of the Ancients;\nThis is the Gateway to Darkness and Freedom;\nHere lies the Truth of the Ancestor's Arte;\nThe Gnosis of Witchblood Burning within;\nYields Power on the Night of the Darkest Moon;\nTo those who would seek the Path of Hecate;\nGuided by the Witchfire of Lucifer's Flames.\"" }, { title: "Invocation of the Pact", instruction: "Take the charm to a graveyard. You must remain for three nights. Speak this invocation to seal the pact of the Trident beneath the haunted soil.", incantation: "\"I call He who stands Alone in the Field of the Bones;\nChild of Hecate, Born of Witchflame;\nI call to the Goddess of the Five Pointed Star;\nI call to the Queen of Hell in the Pentagram's Name;\nI call to you Dark Lady through the Five Fold Silver Gate;\nI call to the King of Hell, Lord of all Lords;\nOpen the Lines of the Hidden Primal Current;\nThat I might draw their Power beneath the Haunted Soil;\nI evoke the Witch God Belial, Protector of this Path;\nGuide to the traveller through the Dark Moon Nights;\nThe Lord of Wisdom now stands at my side;\nI open the Path to the Midnight Gate;\nThe Meeting on the Path at the Three Crossed Staves;\nIn the Magick Names of Aboen I call to the Son of Hecate;\nI call to the Dark Horned God of all Witches;\nI call you to meet me at Midnight's Crossing;\nTo open the Book of the Witch's Pact;\nMy name to be signed by the Hand of the Devil;\nNext to the Seal of the Queen of Hell;\nWritten in Witchblood and Bound by Hecate.\"" } ] },
+        { title: "Module 6: Evocation of the Trident", warning: "Physical Evocation: Prepare for massive kundalini surges.", steps: [ { title: "The Visceral Event", theory: "Physical evocation is a visceral event. Lucifer (Lord of Ascending Flame) often manifests with amber eyes and a massive surge in kundalini energy. Belial (Lord of the Earth) has a calmer initial energy concealing vast, fathomless power.", instruction: "Cast the circle. Prepare the Chalice of Wisdom. Ground yourself deeply; the physical presence of the Dark Solar Horned God and the Lord of the Earth can overwhelm an unprepared nervous system." }, { title: "Evocation of Lucifer", instruction: "Face the East. Hold the Chalice. Call forth the Lord of Ascending Flame.", incantation: "\"In the Names and Power of the Trident of the Witch's Craft; I call to you Lucifer;\nThrough the Power of the Grail, carved from thine own Emerald Eye;\nThe Chalice of Wisdom and Knowledge, flowing with the Blood of Hecate;\nI call you forth Lucifer;\nHorned God of this Ancient Craft, Black Hooded King of Witch Gods;\nI call unto you Lucifer;\nIn the Names of the Synchronomicon Aboen Lucifer;\nI call to you Master of the Dark Abyss;\nBeneath Pyramid and Shifting Sands;\nThrough the Gates of Wisdom and the Realm of Thaumiel;\nTo this Temple of the Sacred Arte, Rise, Lucifer;\nDark Witch Lord of Freedom;\nThrough Seven worlds with Seven calls, Lucifer;\nI open all Hell's Secret Gates;\nTo call you forth to this Circle of Night;\nLord of Ascending Flame.\"" }, { title: "Evocation of Belial", instruction: "Face the North. Call forth the Prince of this World.", incantation: "\"Lord of all Lords, Belial, I call you enter this Temple of Night;\nIn the Names of Hecate and Lucifer, I call to you Belial;\nMaster of Magick, Lord of this Earth;\nDark Witch God of the Draconian Faith;\nHe who protects the Witch Queen's Kin;\nThrough Infernal Flame and Nightside Path join with me;\nHere at this Temple of the Shadow Craft;\nIn the Names of the Trident and the Queen of all Hell;\nI call to you Belial Mighty King of Wisdom;\nIn the Names of the Three Dark Sisters of Fate;\nI call you Belial, Come forth this Night;\nIn the Name of the Horned God Lucifer;\nCome Belial, Guardian of all Witchblood;\nShadow of the Earth, Spirit of the Night, Watcher in the Darkness;\nHonour me with your presence;\nHere at the Mark of the Three Crossed Staves;\nOf the Trident of the Witchkin of Hecate's Path;\nCome Unto me as I call you forth, King Belial;\nHorned Black Lord of the Sabbat.\"" } ] }
+    ];
+
+    const bookTwoData = [
+        { title: "Module 1: The Emerald Eye", warning: "Extreme Spiritual Danger: Ensure protective foundations from Queen of Hell are intact.", steps: [ { title: "The Primary Initiator", theory: "As the soul progresses upon the Path of Hecate, Lucifer steps forward as the Primary Initiator. He is the First Born Son of Hecate, the Horned King of Thaumiel, and the Lord of Ascending Flame. To receive His gnosis, the practitioner must attune their soul to His energy through the 'Emerald Eye'—the Draconian third eye of Lucifer.", instruction: "Prepare a clear quartz crystal. This rite will align your soul's frequency to the Dark Solar Witch God, opening hidden gateways of knowledge." }, { title: "Prayer Of The Emerald Eye", instruction: "Hold the clear quartz crystal. As you speak the words, you must offer your own Witchblood over the stone, anointing it to open the sacred seal.", incantation: "\"With The Parting Of The Flesh Hidden Seals Shall Open;\nAs The Flaming Red Blood Of The Witch Kin Pours Forth;\nSo The Ancient Gnosis Of Lucifer Flows;\nIn Devotion, I Stand Here, A Soul Alone;\nIn Offering I Bathe The Emerald In Mine Own Life's Essence;\nIn Life, In Love, In Offering;\nIn Spiritual Power And Manifestation;\nI Call To You Lucifer, Open For Me The Sacred Seal;\nGrant Me The Gift Of The Emerald Eye;\nThat I May See All As The Lord Of Ascending Witch Gods;\nThat I May Know Thy Secrets Of The Ancient Arte Of Khem;\nAs King Among Kings I Shall Stand;\nThe Child Of Hecate, Marked With The Emerald Eye;\nOf The Dark Horned Lord Of All Of Hell's Thrones;\nThe Gift Of Power Placed On My Brow By Lucifer's Own Hand.\"" }, { title: "The Flesh Of Lucifer", instruction: "Once the Emerald Eye is active, the energy will shift dramatically. Speak this final prayer only as you allow full possession of the physical vessel by the Horned God.", incantation: "\"In The Circle Of Night I Stand;\nChild Of The Goddess Hecate;\nMy Blood Ablaze With The Fires Of Dark Magick;\nThe Power Of The Witch Gods Burning Within;\nThe Flesh Carries The Seeds Of Manifestation;\nOpen The Path Of The Body;\nOpen The Sacred Gateways Within;\nWith Soul Intent I Call To You, Son Of Hecate;\nLord Of The Path Of Divine Ascendance...\"" } ] },
+        { title: "Module 2: Surgat & The Key", warning: "Violent Manifestation Expected: Surgat forcefully strips away fears and mental blockages.", steps: [ { title: "The Gatekeeper of Hell", theory: "Before interdimensional pathways can be fully navigated, the practitioner must forge a pact with Surgat. He unlocks hidden pathways to both Empyrean and Infernal realms. His initial manifestation may feel like a violent attack; this is a necessary rite of passage.", instruction: "Prepare a physical wooden talisman. Carve or paint Surgat's sigil upon it. Ground yourself against the impending psychic turbulence." }, { title: "Evocation Of Surgat", instruction: "Stand at the center of the temple. Project your will outward to pierce the veil and summon the Gatekeeper.", incantation: "\"In The Names Of Belial, Lucifer And Hecate;\nI Summon The Great Winged Serpent;\nI Speak The Names Of Power In The Presence Of Gods;\nSynchronomicon Aboen Lucifer....Surgat;\nI Call The Lord Of The Shadow Gates;\nHe Who Serves The Horned God Of Ancient Man;\nI Call To You Surgat, Great And Mighty Gatekeeper Of Hell;\nLord Of The Secret And Hidden Paths;\nMaster Of The Gates Of The Power Of Flame;\nSurgat, You Are He Who Holds The Forgotten Keys;\nYou Are Lord Of The Ancient Pathways Of Heaven And Hell;\nI Call To You Surgat Mighty Gatekeeper;\nAttend This Ritual Held In Lucifer's Name;\nBy The Power Of The Synchronomicon I Call You;\nSurgat, Rise Through The Sacred Paths In Belial's Earth;\nCome In The Name Of Hecate, The Dark Witch Goddess;\nCome In The Name Of The Queen Of Hell;\nCome Surgat Of The Shadow Realms;\"" }, { title: "Opening The Gatekeeper's Key", instruction: "Take up the wooden talisman. Draw your own blood and apply it to the carved sigil to consecrate the permanent Gatekeeper's Key.", incantation: "\"The Flames Of The Blood Of The Witch Burn The Seals;\nOpening Ancient Locks Upon Secret Gates;\nThis Is The Merging Of Blood And Magick;\nHere Is The Key To The Secrets Of Hell;\nAnother Doorway Upon The Path Of The Wise Shall Be Opened;\nBlood Is The Key Which Shall Turn These Locks;\nThe Power Of The Living Spirit Essence Within The Key;\nThat Is Forged In The Shadows By Surgat's Own Hands...\"" } ] },
+        { title: "Module 3: The Demon Princes", warning: "Universal Gates Opening: Prepares the soul for apocalyptic winds of change.", steps: [ { title: "Guardians of the Gates", theory: "The practitioner must now call upon the Four Demon Princes, the Great Watchers of the Universal Gates. Lucifer governs the East, Hasmoday the South, Uriens the West, and Belial the North. The opening of their gateways provides the raw power necessary to access lost Atlantean gnosis.", instruction: "Stand at the absolute center of your cast circle. Do not break the perimeter once the invocation begins." }, { title: "Prayer Of The Four Princes", instruction: "From the center of the circle, speak the initial calling to awaken the four quadrants of the universe.", incantation: "\"With The Power Of The Moon From Eastern Rising Flame;\nBeyond The Setting Sun Through The Silver Star Gate;\nI Summon The Demon Princes Of The Four Quadrants Of The Universe;\nThrough The Gate Of Moon To The Heart Of The Sun I Call;\nThrough The Shadows Of The Black Sun Beyond;\nTo The Seven Sisters And The Dark Queen's Throne;\nI Call You Demon Princes Of The Sacred Dark Gates;\nI Call To The Ancient Guardians Of The Gateways Of The Void;\nThe Demon Princes Of The Gates Of East, South, West And North;\nIn The Names Of Belial, Lucifer And Queen Hecate;\nBy The Power Of The Witch God Trident Conjoined;\nI Summon The Demon Princes Of The Four Great Gates;\nCome Mighty Guardians Through The Secret Pathways Beneath This Earth;\nRise To The Circle, Cast In The Trident's Names;\nRise To The Circle's Edge Now Rise!\"" }, { title: "The Circumambulation", instruction: "You must now physically face each quadrant in a deosil (clockwise) circumambulation. Begin by facing East to conjure Lucifer, turn South for Hasmoday, West for Uriens, and finally North for Belial. Project your will into each direction to finalize the openings." } ] },
+        { title: "Module 4: The Devil's Familiar", warning: "Entity Bonding: Extreme care must be taken when housing Infernal Spirits.", steps: [ { title: "Forging the Host", theory: "Building upon the Toad Rites of Queen of Hell, the preserved flesh/skin of the deceased toad is now utilized to house a bound Infernal Demon Familiar. This entity is granted power in Infernal, Empyrean, Cosmic, and Stellar realms by the Trident.", instruction: "Bring forth the sigilized flesh of the toad. You will place this host body into the energy vortex of each of the Four Demon Princes you have just summoned." }, { title: "Prayer Of Magickal Life", instruction: "Speak this as you pass the flesh through the elemental/energetic vortex at the circle's edge.", incantation: "\"In The Names Of The Trident Of Witchcraft;\nThe Three Ruling Gods Of The Ancient Arte;\nI Call Upon The Four Demon Princes;\nGuardians Of The Cardinal Quarters Of Magick;\nTo Grant Life To This Chosen Host Body;\nInfuse This Flesh With The Blood Of Four Great Gods;\nThe Keepers Of The Forgotten Seals Of Power;\nWhich Flows Through The Dark Eternal Void;\nOpen For Me The Paths To Infernal Realms;\nAs This Form Is Blessed With The Blood Of The Princes Of Old;\nSummon Your Kin To Rise Within This Cast Circle;\nThe Cloak Of The Witchflame Queen Hecate;\nAs The Power Of Lucifer's Fires;\nFlows Through The Flesh And Spirit Of Daemon And Man.\"" }, { title: "The Blessing Of The Witch Gods", instruction: "This prayer must be spoken immediately prior to the final sexual magickal sealing, imbuing the familiar with the ultimate life force of the practitioner.", incantation: "\"Blessed Is The Power Of Lucifer;\nLord And Master Of The Universe Of Man;\nBlessed Is The Flesh Of The Dark Lord Belial;\nHe Who Is Lord Of Edom's Lands;\nBlessed Are The Four Guardian Princes Of The Gates Of Eternal Darkness;\nBlessed Is The One Great Queen Of The Void;\nShe Who Rules Over All Worlds Of Men And Gods;\nThrough Me Flows The Power And Gnosis Of This Arte;\nEnsorcelled In The Blood Red Key Of Ancient Magick;\nBlessed Is The Flesh Which Opens To Empower This Rite;\nAll Blessings Of The Trident Of Witchfire;\nAs The Blood Of The Wise Flows Forth Upon This Sacred Work.\"" } ] },
+        { title: "Module 5: Masks of Lucifer", warning: "Transdimensional Travel: The ego must be completely suppressed to survive Thaumiel.", steps: [ { title: "The Cardinal Crowns", theory: "To truly understand the totality of Lucifer's gnosis, the practitioner must receive His Cardinal Crowns. These crowns are the keys to Thaumiel, allowing the practitioner to assume the many 'Masks' or faces of the Horned God. This ritual initiates transdimensional time travel.", instruction: "Prepare to be engulfed by the energetic flames of the Horned God. You must relinquish all anchoring to the present material time and space." }, { title: "Prayer For The Keys To Lucifer's Power", instruction: "Stand firm in the center. Visualize the flames of Thaumiel surrounding you, burning away the singular human identity.", incantation: "\"As I Stand Engulfed By The Horned God's Flames;\nMy Soul Ablaze With Lucifer's Power;\nI Embrace The Unity Of Self With Thaumiel's King;\nOpen For Me The Secrets Of The Keys To The Gateway Of Knowledge;\nAs One We Are Merged Within This Circle Of Night;\nMy Soul Now Prepared To Receive The Mark Of Thaumiel's Seals;\nGrant Me This Gift Of Transformation Great Horned God;\nOpen In Truth For He Who Has Come In Love And Devotion;\nQuesting The Full Power Of Lucifer;\nThe Path Of Flame Which Leads To The Realms Beyond;\nDeliver To My Soul The Lightning Flash Of Your Gnosis;\nOpen The Way To The Ancient Secrets;\nOf The Immeasurable And Hidden Power;\nOf The Lord Of All Of Hell's Thrones.\"" } ] },
+        { title: "Module 6: The Skull of Bane", warning: "EXTREME WARNING: Necromancy & Malefica. Failure of will results in soul entrapment by the shades of the dead.", steps: [ { title: "The Prison of Bone", theory: "This is a Left-Hand Path working of extreme Malefica. A human skull is consecrated to become a prison for a damned, unforgiven soul summoned from the Field of Bones. This soul is bound to the will of the sorcerer. If the practitioner lacks the iron will of Belial, the angry shades of the dead will tear their mind and soul apart.", instruction: "You must perform this rite within the graveyard (Field of Bones). Have the human skull and consecrated athame prepared. You must operate with absolute, terrifying authority." }, { title: "The Call Of The Great Earth Dragon", instruction: "First, you must seal the perimeter of the graveyard to prevent external interference or mass spiritual swarming. Speak this to summon Behemuth.", incantation: "\"Through The Gates Of Namaah;\nWith The Power Of The Trident;\nEnsorcelled To The Will Of The Lord Of Wisdom;\nWith The Flames Of The Criss Cross Paths Of Belial;\nI Call To The Ancient Earth Dragon Behemuth;\nAwaken In The Name Of The Great Lord, Lucifer;\nAwaken In The Name Of The Queen Of Hell, Hecate;\nAwaken In The Name Of The Prince Of This World, Belial;\nRise From The Depths Of The Chamber Of Sister Namaah;\nWith Mighty Coils Encircle This Field Of Bones Great Behemuth;\nWrap Your Body Many Times Neath The Field Of The Dead;\nFrom The Heavens To The Hells;\nThrough The Centre Of The World Of Man;\nI Ensorcell Your Awesome And Legendary Power;\nTo Seal The Dragon Gates Upon This Land...\"" }, { title: "Binding Prayer Of Lucifer", instruction: "Identify the shade to be bound. Using the athame, direct your unyielding will and physically force the damned soul into the skull while speaking the binding.", incantation: "\"I Summon And Bind You Dark Spirit Of Evil And Wrath;\nFor I Am The Lord Of The Demon Princes;\nYou Are Bound To This Prison Of Bone By My Hand;\nI Am He Who Was Once Called Devil By Man;\nBound From The Furthest Atlantean Depths;\nBound In The Name Of The Lord Of Edom's Lands;\nFor I Am The Horned God Of Witchcraft;\nThe Lord Of Ascending Flame;\nHe To Whom The Great Lord Of Death Does Bow;\nBound Are You By The Blood Of Lucifer;\nWhich Flows In Possession Through These Mortal Hands.\"" } ] }
+    ];
+
+    const bookThreeData = [
+        { title: "Module 1: The Armour of the Scorpion", warning: "Extreme Spiritual Danger: Descent into the Atlantean Universe. Failure results in '<span class=\"lore-tooltip\">Flight of the Locust<span class=\"tooltip-text\"><strong>The Flight of the Locust:</strong> The fate of a soul that attempts the Atlantean descent but fails due to hubris, ego, or fear. The soul becomes a corrupted, parasitic entity stripped of divine potential, driven only by base hunger before being eternally devoured by Sepheranz in Lucifer's flames.</span></span>'.", steps: [ { title: "The Atlantean Depths", theory: "Belial teaches that only the form of the scorpion can survive the hostile pathways which lead to the temples of the Primal Gods beneath the Desert of Arkos. These are the paths of the Spider Goddess. Attempting to undertake the tests of the Atlanteans in any form other than that of the Scorpion God will end in immediate failure and soul entrapment.", instruction: "You must assume the 'armour' of the Scorpion God—the very flesh of Belial Himself—to protect the soul during its descent. <span class='ritual-action'>PHYSICAL PRAXIS: Strip the body of all mundane clothing and attachments. Plunge the ritual space into absolute, sensory-depriving darkness. Sever all connection to the human world before proceeding.</span>" }, { title: "The Flesh of the Scorpion", instruction: "Speak this invocation to initiate the assumption of the Scorpion Armour. Feel the dark, chitinous energy of Belial encase your subtle and physical body.", incantation: "\"From The Pathways Of Fire;\nThe Lines Of The Dragon Which Lie;\nBeneath The Body Of Belial That Is The World Of Man;\nFrom The Throne Of Hecate, In The Black Endless Void;\nFrom The Inner Sanctum Of The Lake Of Lucifer's Fire;\nI Summon The Power Of The Black Flesh Of Belial;\nFrom Atlantean Depths And The Throne;\nOf She Who Stands In The Shadows;\nI Call For The Scorpion Flesh;\nThis Is The Form Of Prince Belial;\nAs King Of The Kings Of Edom;\nHere Is The Soul Of Man Who Shall;\nBecome As The Scorpion God;\nLet The Darkness Flow From The Depths Below;\nThrough Hidden Gateways And Into My Being;\nLet The Venoms Of Gods Yet Unknown;\nPierce, In Belial's Name, The Flesh And Soul;\nThe Embrace Of The Black Lord Of Lords;\nIs The Scorpion Form Of The Spider Paths;\nFor Only In The Armour Of The Scorpion;\nThat Enters The Tunnels Which Lie;\nFar Beneath The Red Desert Sands;\nCan Belial Protect That Which Shall;\nIn Eternity At His Side Stand;\nThe Fledgling God Who Shall Rise;\nFrom The Sands Of The Depths;\nForged In Atlantean Fire;\nFrom The Flesh Of My Soul;\nThat From Which Is Formed By Belial's Hand;\nAnd The Venom Of The First Primal Gods Of Fire;\nThe Ancient Black Scorpion God, That Once Was A Soul Of Man.\"" } ] },
+        { title: "Module 2: The Black Venom", warning: "Lethal Malefica: The practitioner handles the pure, soul-destroying poison of the depths. Requires Blood & Sexual Gnosis.", steps: [ { title: "The Sacred Mark & The Blood Seal", theory: "The sacred Mark of the Scorpion yields the power of the Scorpion's Touch. This malefic venom is administered by cutting the mark into the flesh of the projecting arm, then drawing it upon the abdomen in black ink. The practitioner's own blood, flowing with the venoms of the scorpion, is used to consecrate the abdominal seal in sexual magickal communion with Belial.", instruction: "Prepare a sterilized ritual blade, black ink, and your altar. You must be prepared to offer your own blood and sexual fluids (kalas) to forge this seal. <span class='ritual-action'>PHYSICAL PRAXIS: You must physically cut the Mark of the Scorpion into the flesh of your projecting arm. Once the blood flows, draw the seal upon your abdomen in black ink. Bring yourself to the peak of sexual gnosis, and use the resulting kalas mixed with your own fresh blood to anoint and consecrate the abdominal seal.</span>" }, { title: "The Call Of The Dark God Belial", instruction: "Focus your absolute will upon the physical, bleeding Mark of the Scorpion. Evoke Belial to draw the Black Venom into your spiritual and physical vessel.", incantation: "\"From The Form Incarnate Of Flesh;\nI Have Risen To The Throne Of The One Queen Of Hell;\nThe Path Beyond The Moon Of Thaumiel, I Have Walked;\nMy Soul A Gate Of Stellar Kalas;\nShone By The Gods To Be Earthed;\nHere In The World Of Incarnate Man;\nAs He Who Is The First Sun;\nThat Which Burns Brighter Across Atlantean Skies;\nI Bear The Mark Upon My Immortal Soul;\nOf The Sacred Seal Of The Great Scorpion God;\nWith This Seal I Call You Forth;\nFrom The Depths Of Amenta;\nThrough The Backwards Path;\nWith Power Summoned Through The Gate;\nOf The Seven Sister Stars;\nI Call To The God Of The Third Ruling Tip;\nOf The Trident's Great And Mighty Flame;\nIn The Form Of The Scorpion God;\nRise Forth From Beneath The Red Desert Sands;\nBelial Who Is Lord Over The Kings Of Edom;\nCome Forth From The Depths And Shadows;\nAncient Scorpion God Of The Black Lands;\nRise From The Time Before Man;\nRise From The Darkness, The Depths;\nCome Forth And Enter The Vessel Of Flesh;\nAnd Witchfire, To Open The Path;\nOf My Immortal Soul To Release;\nThe Black Venom Of The Scorpion God;\nOf The Realms Of Forbidden Power;\nTo Open The Gates Sealed Through The Aeons;\nReturning Into The Hands And Minds Of Man;\nThe Vilest Curses Of Soul Destruction;\nOf The Power Of The Venom Of The Scorpion;\nThe Greatest Curse Of The Touch Of Death;\nThat Which Lies Dormant;\nThe Primal Touch Of Forgotten Gods;\nAwakened Once More Here This Night;\nBrought Forth To This Vessel Of Flesh By Belial;\nThe Venom Of Death's Touch In The Body Of Man.\"" }, { title: "Curse Of The Scorpion (Malefica)", instruction: "This is a direct, irreversible act of soul-destruction. Focus your absolute, unyielding intent upon the annihilation of the enemy. <span class='ritual-action'>PHYSICAL PRAXIS: Extend your projecting index finger—it is now the physical plane representation of the scorpion's tail. Violently thrust it forward, visualizing it physically piercing the astral aura of your enemy. Inject the Black Venom into their spiritual anatomy, initiating total decay, as you vibrate the curse.</span>", incantation: "\"With The Touch Of Death I Issue This Curse;\nWith The Poison Of Souls Eternally Damned;\nFrom The Bones Of They Who Have Fallen;\nInto The Black Soul Corruption;\nOf The Greatest And Most Sacred Power Of The Ancient Craft;\nThe Blackest Atlantean Magick;\nFrom The Agony Of Spirits Forever Held;\nFrom Their True Place Of Rest;\nAll They Who Have Sank Far Beneath The Gate Of Lost Souls;\nWhich Lies Below The Depths Of Atlantean Desert Sands;\nIs Created The Venom Of The Scorpion;\nFrom Death There Is Born A Greater Life;\nFor They Who Partake Of The Sacred Poison;\nFor You Who Are Now Cursed With This Black Venom;\nShot Forth From Mine Own Witchblood;\nOnly Misery And Death Shall Great Belial Grant;\nAs The Accursed Venom Of The Scorpion;\nUnfolds To Devour And Decay All Will;\nLife, Power And Hope;\nAs I Pierce Your Flesh, Mind And Spirit;\nWith The Venomous Tail Of The Great Scorpion God;\nThe Black Poison Of The Damned;\nIn The Realm Of Forgotten Gods;\nOpens The Gate Of The Dead;\nDeep Within Your Body And Soul.\"" } ] },
+        { title: "Module 3: The First Altar", warning: "Soul Transmutation: Drinking the Devil's Blood ignites the Flame of Eternal Existence.", steps: [ { title: "The Sands of Arkos", theory: "Abandoned in the sands of the Desert of Arkos lies the First Altar of the Witch Gods. This is where Lucifer spilled His own blood to seed the very first souls of the Atlantean race into the planes. Here in the depths, guided by Belial, the Lord of Ascending Flame grants the Chalice of Knowledge and Wisdom.", instruction: "Prepare the physical Chalice upon your altar. <span class='ritual-action'>PHYSICAL PRAXIS: Allow yourself to fully descend in trance to the Desert of Arkos. Visualize the visceral reality of Lucifer spilling His own blood into the sands to forge the Atlantean souls.</span>" }, { title: "Prayer Of The First Altar", instruction: "Begin the assumption of Lucifer. Allow His Fire to strip your mortal soul entirely bare as you approach the Altar.", incantation: "\"From Within The Realm Of Primal Gods;\nI Speak To The Great Lord Of Fire;\nI Call Forth Lucifer, The First Father;\nWho Spilled His Own Blood In Ancient Sands;\nTo Seed The Souls Of They Who Would Incarnate;\nAs The Great Atlantean Race Of Man;\nI Am He Who Has Transcended The Gates;\nOf Your Throne At Thaumiel's Moon;\"" }, { title: "The Evocation Of Power", instruction: "Speak this evocation to manifest the Chalice of Fire from the depths of Thaumiel.", incantation: "\"With The Prayer Of Soul Fire Spoken;\nIn The Language Of Gods By The Prince Of The Depths;\nWho Is Lord Of The Pathways;\nIn The Realms Where Heaven Meets Hell;\nWith The Crown Of The Queen Of Witchfire;\nWho Rules All Witch Gods;\nAs She Who Is Both Goddess Supreme;\nAnd Mighty Dragon Of The Limitless Void;\nFrom Within The Fires Of Lucifer;\nGreat Horned Lord Of Ascending Flame;\nWho Rules All In Hecate's Name;\nFrom The Throne At The Heart Of Thaumiel;\nFar Beyond The Soul Path Of All They;\nWho Are Too Afraid To Walk In The Stead Of The Gods;\nI Summon The Power;\nOf The Flame Of The Dragon's Blood;\nI Call Forth The Red Liquid Fire;\nIn Full And Complete Manifestation;\nIn The Circle Of Ancient Magick;\nWhere The Pathways Of Night And Day;\nConjoin With The Stellar Kalas Of Heavens;\nThrough The Gateway Of Hell;\nTo The Unlimited Power Of The Gods;\nOf The Realm Of The Red Setting Sun;\nI Call Forth The Blood Of The First Horned God;\nWho Opens The Gates Of The Princes;\nThe King Of All Witch Gods;\nHe Who Is Born From The Flesh Of Hecate;\nFrom Whose Body All Atlantean Gods Were Formed;\nWith The Blessing Of The Scorpion God, Belial;\nI Open Once More The Gateway Of Flesh;\nTo Spill Forth The Blood Of Lucifer;\nThe Manifestation Of The Liquid Fire Of Gods;\nIgnites The Flame Of Eternal Existence;\nIn Honour, In Oath, In The Presence Of Gods;\nI Partake Of The Blood Of Thaumiel's King;\nWhich Flows From This Chalice Of Fire;\nOpening Seals Of All Knowledge;\nTo Grant The Wisdom Of They;\nWho Walk In The Realms Of Atlantean Gods.\"" }, { title: "The Devil's Blood", instruction: "To seal the inner flame, the physical act must mirror the astral. <span class='ritual-action'>PHYSICAL PRAXIS: Drink from the physical Chalice upon your altar. As the liquid passes your throat, know with absolute certainty that you are consuming the literal, alkhemical blood of the Devil, searing away the final remnants of human frailty.</span>", incantation: "\"I Drink The Devil's Blood;\nFor The Flames Of The Horned Lord Of Freedom;\nWhich Flow In The Red Liquid Alkhemical Witch Fires;\nOf Life And Manifestation;\nGrant The Power Of The Devil In The Scorpion's Form;\nThe Soul Shall Know The Pleasures Of Heaven And Hell;\nAs The Armour Of Belial Once Again Covers The Soul Flesh;\nOf That Which Is Now Neither Man Nor Witch God;\nBut The Pilgrim Spirit Of He Who Walks;\nThe Dark Pathway Which Descends To The Temples;\nHidden Far Beneath These Atlantean Sands.\"" } ] },
+        { title: "Module 4: Sepheranz", warning: "Absolute Testing: To recant or show fear is to invite the total consumption and destruction of the soul.", steps: [ { title: "The Devil Goddess of Atlantis", theory: "The fourth tip of the Trident is the fourth flame of Shinh. The Goddess of this fourth flame is Sepheranz, the Atlantean Devil Goddess, Queen of the Atlantean Gods, seducer of souls, and devourer of Gods. The practitioner must confront Her alone at the Tower of Arkos. She will ruthlessly test the soul for corruption, weakness, and ego.", instruction: "Stand firm in the center of the temple. <span class='ritual-action'>PHYSICAL PRAXIS: You must invoke Her presence and submit entirely to Her testing without a single moment of hesitation or terror. Any flinching of the mind or physical body invites the Flight of the Locust—the complete devouring of your spiritual essence.</span>" }, { title: "The Call Of Sepheranz", instruction: "Speak Her call. Allow Her terrifying, ancient presence to enter the temple space.", incantation: "\"In The Realm Of Man And Manifestation;\nMy Power Reaches Beyond The Gates;\nOf The Soul And The Flesh To All Who Dare;\nTo Walk The Path Of Lucifer's Flames;\nThrough The Atlantean Depths And Below;\nThe Desert Of Blood Red Sands;\nTo Open The Sacred Seals Upon The Gates;\nOf Forbidden Temples Of The Gods Of Black Flame;\nOver Which I Rule As Dark Devil Goddess;\nSeducer Of Souls And Devourer Of Gods;\nFor I Am Sepheranz: Tempter, Tester, Queen Of Soul Death;\nAnd Damnation And Ancient All Powerful Spider Goddess;\nAt The Ring Of Fire Where The Four Gates;\nBecome The Gateway Of The Final Judgement;\nOf He From Whose Body All Gods Were Cut;\nBy The Hands Of She Who Rules Supreme;\nI Stand As Guardian And Keeper Of The Key;\nTo The Greatest Gate Of Hellfire;\nThat May Be Faced By A Soul;\nWho Has Fathomed The Great Wisdom;\nOf The Prince Of The World Of Man;\nWho Is Scorpion God In This Realm;\nLord Of The Twelfth Hidden Throne;\nAnd Guardian Supreme Of The Temples Of Edom;\nAnd Their Ancient Forgotten Kings.\nTo All They Who Shall Fall From The Path;\nOf Lucifer's Flames And Turn From The Gods;\nOf The Four Pillars Of Trident Witchflame;\nTo Walk The Path Of Corruption And Take Flight;\nAs The Locust That Consumes All In Its Path;\nI Am She Who Shall Feast Upon Your Flesh, Mind And Heart;\nAnd The Souls Of All They You Have Known;\nThrough All Incarnations Of Flesh.\nTo The Chosen Few Children Of Hecate;\nWho Have Followed The Wisdom Of Belial;\nAnd Walked As The Golden Scorpion Upon The Path;\nOf The Greatest Tests Of The Spirit;\nOf The Flesh, The Soul, The Heart And The Mind;\nI Am She Who Shall Open The Four Great Gates Of Fire;\nThat Form The One Ring Of Flame;\nThrough Which You Shall Now Be Cast Out;\nTo The Judgement Of One Who Is Father Of Men;\nAnd Lord Of All Children Of Hecate;\nAnd All Eternal Gods Of Witchflame.\"" } ] },
+        { title: "Module 5: The Final Judgement", warning: "No Return: The soul is cast entirely into the Great Void to be devoured or reborn as the Shinhwhurus.", steps: [ { title: "The Stele of Creation", theory: "At the center of the four Great Gates of Fire stands the Stele of Creation—carved from the very flesh of Lucifer's own body. The gate is opened using the Three Ebony Keys, formed from the finger bones of the three Scythe-Bearing Lords of Death. When placed, the Ring of Fire is ignited.", instruction: "You are stepping past the point of no return. The outcome is absolute: either your soul is forged into the immortal body of a Witch God Eternal (the Shinhwhurus), or it burns forever in agony. <span class='ritual-action'>PHYSICAL PRAXIS: You must physically place, or vividly astral-project, the Three Ebony Keys (the finger bones of Death) into the locks of the Stele of Creation. Ignite the Ring of Fire around your physical body.</span>" }, { title: "The Hand Of Lucifer", instruction: "Speak this as the Three Ebony Keys unlock the Stele of Creation.", incantation: "\"Into The Sacred Locks Of The Gateway Of All Creation;\nI Place That Which Was Carved;\nFrom The Finger Bones Of The Three Lords Of Death;\nThe Ankh Talismans Marked With Three Sacred Glyphs;\nThat Were Opened With The Blood;\nOf The Queen Of All Hell's Thrones;\nWhich Flows From The Flesh Of Her Incarnate Kin;\nUpon The Earth Plane Of Man In The Temple Of Stones;\nAnd Forms The Sacred Formula Which Shall Be Opened;\nBy Mine Own Hand Of Eternal Draconian Flame;\nThe Gate That Shall Turn Back The Path;\nOf Creation To Form From The Scorpion Soul Of Man;\nThe Body Of Eternal God Fire;\nThat Is Recreated In The Final Initiation;\nThe Power Of The Gods That Is Released;\nBy These Three Ebony Keys;\nThe Breath Of The Father;\nAnd Final Judgement Of Man In Lucifer's Flames.\"" }, { title: "Prayer Of The Final Judgement", instruction: "Cast out your soul to the Void. Surrender entirely and completely to Lucifer's flames.", incantation: "\"When The Soul Of He;\nWho Turned Away From The Shackles;\nOf Spiritual Lies And Pain;\nTo Walk Forever Without Regret;\nIn The Stead Of The Gods Of Old;\nHas Forged A New Destiny;\nFar From The Realms Of Night And Day;\nIn The Depths Of The Temples Of Flame;\nFollowing The Forbidden Wisdom Of Belial;\nAs He Walks The Path Of Testing;\nThat Leads To The Four Gates Of Fire;\nAnd The Third Great Crown;\nOf He Who Is Lord Over Edom;\nThe Prince Of The World Of Manifestation;\nThat Leads All Who Would Dare;\nFace The Mighty Sepheranz Alone;\nIn The Depths Of The Eleventh Temple;\nThat Sits At The Furthest Reach;\nOf The Atlantean Path Of Lucifer's Flames;\nThe Universe Of The Primal Gods Shall Merge;\nWith The World Of Flesh And Desire;\nAnd The Gateways Of Ancient Stellar Lore Open;\nTo Form The Great Ring Of Fire;\nThe Judgement Of Lucifer;\nThat Shall Be Held In All Realms;\nAcross The Veils Of Time And Incarnation;\nBeyond The Universal Gateway;\nAnd Throughout All Spiritual Planes.\nHere I Stand Alone As A Soul;\nThat Is Neither Of Man Nor Yet Of God;\nIn The Centre Of The Four Great Gates Of Fire;\nOf The Gods Of The Mighty Trident;\nWho Are The Masters Of The Four;\nEternal Pillars Of Witchflame;\nTo Call Forth With The Three Ebony Keys;\nThe Power To Reverse The Creation Of The Soul Of Man;\nWhich Must In The Final Judgement Rise;\nTo Open Within Its Being;\nThe Sacred Keys Of Spiritual Flame;\nThat In The Final Initiation Of He;\nWho Shall Be Called Forth By The Formula Of ALHIK;\nWho Is The Lord God Lucifer;\nThe All-Consuming Fire Of The Bodies Of Gods;\nAnd Spirits Of Men In Which I Walk Now;\nBearing The Three Crowns;\nOf Divine Crystalline Eternal Witchflame;\nTo Offer My Soul In Eternity;\nIn Free Will I Speak This;\nIn Sepheranz, Belial, Lucifer And Hecate's Names;\nOpen The Gates Of All Creation;\nConjoining The Four Gates Of The Gods;\nWhich Shall Form The Mouth Of The Dragon;\nThrough Which I Shall Transcend;\nThe Gate Of The One Ring Of Flame;\nIn Love And Devotion By Mine Own Will And Hand;\nI Call Forth From The Eyes Of The Gods;\nOf The Gods Of The Atlantean Star Sapphire;\nI Open The Gate Of The Final Initiation Of Man;\nThat Shall Be Taken In Flame;\nAs The Final Judgement Of My Soul Is Made By Lucifer;\nFrom The Flesh Of Mine Own Incarnate Form;\nWhich Rests Atop The Gate Of All Creation;\nIn The Circle Of Stones Laid In Honour;\nOf The Gods Of The Atlantean Realm;\nTo Open The Stellar Gate Upon Belial's Earth;\nBefore The Eyes Of The Four Great Gods;\nOf The Trident To Open In Fire;\nUpon The Four Gates Of Flame;\nI Cast Out My Soul To The Void;\nFrom The Path Of The Flesh Into Nothing;\nI Am He Who Shall Face The Dragon King Lucifer;\nAlone In The Vast Eternal Night;\nBeyond The Abyss Of The Gods I Shall Travel;\nTo The Gate Of All Souls To Become;\nOne With They Who Shall Forever Dwell;\nIn The Void And The Stellar Realms Of The Gods;\nAt The Throne Of Hecate Where Once More;\nAs He Who Is Forged Of The Crowned, Crystalline Venom Of Gods;\nAnd The Flesh Of The Scorpion In Lucifer's Flames;\nI Shall Kneel Before The Queen Of Hell;\nTo Be Granted Once More The Life Of The Flesh;\nOf One Who Is Now Godform And Spirit Of Fire Incarnate;\nForever To Serve Her In Body Of Flesh, Blood And Bone;\nAnd Beyond Death As The Godsoul Reborn Of Fire;\nThe Eternal Kin Of The Great Witchflame Queen.\"" } ] },
+        { title: "Module 6: The Gateway of Souls", warning: "Course Conclusion: Do NOT perform unless the mortal soul has been successfully burned away and the physical vessel prepared.", steps: [ { title: "The Witch God Incarnate", theory: "Following the Final Initiation by Fire, the soul has become the Shinhwhurus—the newly forged Godform. Before it can permanently return to the world of man, it must be exposed to the Gate of All Souls deep within the void. Connecting the Godform to the Gate of Souls allows Lucifer to guide it back, while Belial unlocks the centres of power within the physical body to receive it. The soul of man is no more.", instruction: "On the night of the first dark moon following the transformation, prepare the Atlantean circle. <span class='ritual-action'>PHYSICAL PRAXIS: The physical body must be made absolutely ready to receive the Godform. This requires the supreme apex of ecstatic, loving sexual union with the Gods to fully dilate the physical and energetic vessels.</span>" }, { title: "The Call Of Lucifer", instruction: "Draw the Lord of Thaumiel to the Circle of Stones to guide the Godform back from the Void.", incantation: "\"In The Circle Of Standing Stones;\nWhich Opens The Gateway Of Gods;\nTo The Primal Backwards Path;\nOf The Faith Of The One Great Goddess;\nFrom Whom All Others Were Born;\nThe True Craft Of The Wise Ones;\nWho Built The Temples Of Atlantean Thrones;\nLong Before The Fall Of Man;\nI Call Forth The Great Lord Of Thaumiel;\nHe Who Opened The Path Of The Soul;\nOf Man And Granted Life Incarnate;\nAs The Spirits Of The Priests Were Seeded;\nInto The Bodies Of Flesh;\nIn The Realm Now Lost To The Desert Sands Of Arkos;\nTo You Who Opens The Secret Black Path;\nTo The Temples Of The Primal Gods;\nAnd Bestowed Through The Gates Of The Horsemen;\nThe Keys To The Gateways Of The Soul;\nTo One Who Has Passed The Initiations Of Flame;\nWhich Open The Ring Of Fire;\nBorn Of The Four Great Gates;\nAnd Transcended The Final Initiation;\nFrom Which Man Rises Beyond;\nTo Walk In The Realms Of The Thrones;\nOf The Gods Of Eternal Witchflame;\nI Call You Forth Lucifer;\nWith The Golden Key Of He Who Stands;\nAbove All Gods And Men;\nAs Lord Of The Path Of Ascension Through Magickal Flame;\nAnd Keeper Of The Passage Of All Worlds And Realms;\nWhich Holds Within It The Power;\nOf All Gods, Spirits And Men;\nThe Great Gate Of All Souls;\nOver Which You Stand As Lord In Hecate's Name.\"" }, { title: "Opening The Gateway Of The Flesh", instruction: "Speak this to safely return the Godform to the physical body under the protection of Belial. <span class='ritual-action'>PHYSICAL PRAXIS: As the physical climax of the rite is reached, visualize Belial violently unlocking the energetic power centers of your spine to receive the Shinhwhurus. Once the sexual communion is completed, Hecate will open the Gateway of the Torch of Godfire within the circle. The Great Work is permanently sealed in the flesh.</span>", incantation: "\"In The Mouth Of The Gate;\nIn Which The Essence And Knowledge;\nOf All Souls And Gods Is Held;\nAt The Furthest Reaches;\nOf The Black Limitless Realm Of Eternal Night;\nI Speak With The Fires;\nOf The Breath Of The Father;\nIn The Language Of Gods That Is Unknown To Man;\nTo Send Forth The Call Unto My Guardian And Guide;\nWho Has Sheltered My Soul;\nOn The Path Of The Flames Of Lucifer I Have Walked;\nAs I Turned Away From The Wheel Of Incarnation;\nAnd The Soul Path Of Man;\nTo Know As The Scorpion In The Desert;\nOf Gods Long Forgotten;\nThe Forbidden Wisdom Of He;\nWho Is Lord Of The Depths And King Of The Heights;\nWhere The Pathways Of Hell;\nRise Once More To The Heavens;\nAnd The God Newly Forged In The Flames;\nOf The Final Initiation Rises;\nNo Longer A Soul Of Man;\nFrom Edom To Know Once More;\nThat Which Has Been Long Since Forgotten;\nThe Pleasures And Joy Of The Life Eternal In Eden's Lands;\nAs Kin Of The Trident And He Who Shall Forever;\nBe In The Service Of The Queen Of Hell;\nStood At Hecate's Left Side;\nIn Honour To Follow The Footsteps;\nOf The Ancient, Lost And Forgotten Power Of Soul Transformation;\nBelial, Who As Scorpion God Supreme;\nPrince Of The Living World Of Man;\nGuide And Guardian To The Souls;\nOf All They Who Follow Hecate's Path;\nTo Open The Gateway Of Flesh;\nUnlock Now The Centres Of Power;\nThat Shall Unseal The Sacred Spiritual Cloak;\nWrapped Around The Body Incarnate;\nTo Receive That Which Is No Longer Of Man;\nWho Descends In Lucifer's Arms;\nFrom The Great Gate Of All Souls;\nTo Once More Dwell In The Warmth;\nOf The Body Of Flesh And Desire;\nAnd Walk In The Realm Of The Great World;\nOver Which You Rule As Crown Prince And Lord;\nOf The Paths Of Above And Below;\nIn The Names Of The Gods Of The Four Pillars Of Fire;\nWith The Venoms Of Sepheranz And Lucifer's Flame;\nBy The Will Of Hecate I Am Granted;\nThe Knowledge And Life Of The Godsoul;\nWho Shall Beyond This Life Walk The Pathways Of The Stars;\nAnd The Gates Of The Four Demon Prince Guardians;\nTo Serve The Four Gods Of The Trident's Flames;\nAs I Return Now Through The Golden Passage With Lucifer's Key;\nTo The Gateways Of The Flesh;\nWhich Are Opened To Receive This Body Of Fire;\nBy The Scorpion Lord Of Forbidden Wisdom;\nHe Whose Black Blood Has Kept Safe;\nThe Body Of Man Into Which I Now Walk;\nAs Witchflame Incarnate In Belial's Name;\nAnd Child Of The Fires Of Lucifer;\nBy The Will Of Hecate Forever And Eternal This Spirit Shall Be.\"" } ] }
+    ];
+
+    /* =========================================================
+       DATA PAYLOADS (THE TREE)
+       ========================================================= */
+    const geometry = { 
+        1: {x: 50, y: 5}, 2: {x: 75, y: 18}, 3: {x: 25, y: 18}, 
+        4: {x: 75, y: 38}, 5: {x: 25, y: 38}, 6: {x: 50, y: 50}, 
+        7: {x: 75, y: 70}, 8: {x: 25, y: 70}, 9: {x: 50, y: 82}, 
+        10: {x: 50, y: 95} 
+    };
+    const connections = [ [1,2],[1,3],[1,6],[2,3],[2,4],[2,6],[3,5],[3,6],[4,5],[4,6],[4,7],[5,6],[5,8],[6,7],[6,8],[6,9],[7,8],[7,9],[7,10],[8,9],[8,10],[9,10] ];
+    
+    const nightsideNodes = {
+        1: { id: "1", name: "Thaumiel", trans: "The Twins of God", ruler: "Satan & Moloch", desc: "The shadow of Kether. The ultimate division, the Two-Headed Dragon. Achieving absolute separation to become a self-sustaining universe.", gnosis: "The Final Judgement. Cast the soul into the Great Void to claim the final crown of the Trident." },
+        2: { id: "2", name: "Ghagiel", trans: "The Hinderers", ruler: "Beelzebub", desc: "The shadow of Chokmah. Chaotic, primal anti-creation. The buzzing, overwhelming static of infinite, unchecked potential.", gnosis: "Face the Lord of the Flies. Open the mind to infinite, chaotic frequencies without going mad." },
+        3: { id: "3", name: "Satariel", trans: "The Concealers", ruler: "Lucifuge Rofocale", desc: "The shadow of Binah. The dark labyrinth, the black womb of the Dark Mother. A realm of absolute darkness where all structure breaks down.", gnosis: "Navigate the pitch-black labyrinth relying solely on the internal Witchflame. Trust Lucifuge to guide you." },
+        4: { id: "4", name: "Gha'agsheblah", trans: "The Smiters", ruler: "Astaroth", desc: "The shadow of Chesed. The active breaking of cosmic laws and the smiting of creation. The chaotic force that shatters the architecture of the universe.", gnosis: "Learn the higher laws of universal manipulation to rewrite probability and fate at will." },
+        5: { id: "5", name: "Golachab", trans: "The Flaming Ones", ruler: "Asmodeus", desc: "The shadow of Geburah. An inferno of pure, ruthless destruction and cruelty that burns away anything weak or submissive.", gnosis: "Work with Asmodeus to forge an unbreakable will, using spiritual fire to annihilate past karmic chains." },
+        6: { id: "6", name: "Thagirion", trans: "The Hagglers / The Black Sun", ruler: "Belphegor", desc: "The shadow of Tiphereth. The Black Sun, core of the Qliphoth. Offers illumination of the Shadow Self, realizing one's own independent godhood.", gnosis: "The Rite of the Black Sun. Stare into the center of your own darkness to find the spark of the Witchflame." },
+        7: { id: "7", name: "A'arab Zaraq", trans: "The Ravens of Dispersion", ruler: "Baal", desc: "The shadow of Netzach. The dark arts of war, uncontrolled passion, and the ecstasy of destruction. Ravens scatter the stagnant energies of the soul.", gnosis: "Evoke the warlord Baal to conquer internal cowardice. Channel wrath into directed lasers of intent." },
+        8: { id: "8", name: "Samael", trans: "The Poison of God", ruler: "Adrammelech", desc: "The shadow of Hod. The breaking of divine intellect and orthodox sanity. The sphere of the trickster and the toxic realization of human illusion.", gnosis: "Drink the spiritual Poison. Engage in rites of cognitive dissonance to break down deeply held beliefs." },
+        9: { id: "9", name: "Gamaliel", trans: "The Obscene Ones", ruler: "Lilith", desc: "The dark shadow of Yesod. The realm of dark dreams, sexual alchemy, and the astral moon stained with blood. A sphere of seduction and nightmare.", gnosis: "Mastery requires dream incubation and sexual magick, absorbing the kalas of the Moon of Blood." },
+        10: { id: "10", name: "Lilith", trans: "The Night Specter", ruler: "Naamah", desc: "The earthly shadow, the anti-Malkuth. The cave entrance to the underworld, representing primal, untamed forces of nature unchained from divine restriction.", gnosis: "Sever ties to the mundane illusions. Confront basest, suppressed earthly desires in absolute darkness." }
+    };
+    const daysideNodes = {
+        1: { id: "1", name: "Kether", trans: "The Crown", ruler: "Metatron", desc: "The first emanation of creation. Pure, unmanifested potential and the divine source of all light.", gnosis: "Dissolve the ego completely into the divine light. Meditation upon the formless, infinite unity of the All." },
+        2: { id: "2", name: "Chokmah", trans: "Wisdom", ruler: "Raziel", desc: "The raw, active, masculine energy of creation. The great stimulus and the first push of pure dynamic force.", gnosis: "Harness the unbridled spark of divine inspiration. Channel pure creative energy before it takes form." },
+        3: { id: "3", name: "Binah", trans: "Understanding", ruler: "Tzaphqiel", desc: "The Great Sea, the passive, feminine receptacle that shapes and structures the raw energy into form.", gnosis: "Meditate upon the structuring of reality. Learn to receive, contain, and understand divine will." },
+        4: { id: "4", name: "Chesed", trans: "Mercy", ruler: "Tzadqiel", desc: "The sphere of loving-kindness, expansion, and benevolent structure. The loving ruler who builds up the kingdom.", gnosis: "Expand your spiritual borders through unconditional love and the establishment of divine order." },
+        5: { id: "5", name: "Geburah", trans: "Severity", ruler: "Kamael", desc: "The sphere of judgement, restriction, and necessary destruction. The divine surgeon's knife.", gnosis: "Apply discipline and strict judgement to the self. Burn away spiritual impurities through rigorous purification." },
+        6: { id: "6", name: "Tiphereth", trans: "Beauty", ruler: "Raphael", desc: "The center of the Tree. Harmony, balance, and the illuminating sun. The awakened human soul.", gnosis: "Achieve the Knowledge and Conversation of the Holy Guardian Angel. Balance Mercy and Severity." },
+        7: { id: "7", name: "Netzach", trans: "Victory", ruler: "Haniel", desc: "The sphere of raw emotion, nature, art, and instinctual drives. Untamed forces of nature.", gnosis: "Engage with the emotional, artistic, and natural currents. Harness the power of desire to drive the will." },
+        8: { id: "8", name: "Hod", trans: "Glory", ruler: "Michael", desc: "The sphere of intellect, logic, communication, and ceremonial magick. Structuring of thoughts.", gnosis: "Master the structure of ritual, the power of words, and the intellectual frameworks of esoteric science." },
+        9: { id: "9", name: "Yesod", trans: "Foundation", ruler: "Gabriel", desc: "The astral plane, the machinery of the universe. The realm of dreams, illusions, and subtle blueprints.", gnosis: "Scrying, astral projection, and the manipulation of the subtle etheric blueprint underlying physical reality." },
+        10: { id: "10", name: "Malkuth", trans: "The Kingdom", ruler: "Sandalphon", desc: "The physical world. The culmination of all divine emanations condensed into dense matter.", gnosis: "Grounding and mastering the physical plane. Recognizing the presence of the divine within dense matter." }
+    };
+    const daysidePaths = {
+        "1-2": { title: "Path 11: Aleph", trans: "The Fool", desc: "The initial spark of pure spirit leaving the Crown. A leap of faith into the unknown, carrying infinite potential." },
+        "1-3": { title: "Path 12: Beth", trans: "The Magician", desc: "The shaping of primal will into action. The conduit bridging the divine source with the structuring womb of Binah." },
+        "1-6": { title: "Path 13: Gimel", trans: "The High Priestess", desc: "The direct descent of divine grace crossing the Abyss to illuminate the balanced soul in Tiphereth." },
+        "2-3": { title: "Path 14: Daleth", trans: "The Empress", desc: "The union of the ultimate Father and Mother. The gateway of cosmic love generating the framework of existence." },
+        "2-6": { title: "Path 15: Heh", trans: "The Emperor", desc: "The structuring of dynamic wisdom into the governing center of the soul. The establishment of internal authority." },
+        "2-4": { title: "Path 16: Vau", trans: "The Hierophant", desc: "The revelation of divine wisdom into the structured expansion of Chesed. The inner teacher conveying spiritual law." },
+        "3-6": { title: "Path 17: Zayin", trans: "The Lovers", desc: "The discerning intelligence organizing the dualities of the soul. The choice to align the self with divine harmony." },
+        "3-5": { title: "Path 18: Cheth", trans: "The Chariot", desc: "The mastery of form and the vehicle of the soul. Carrying the understanding of Binah into the fierce discipline of Geburah." },
+        "4-5": { title: "Path 19: Teth", trans: "Strength", desc: "The balancing of Mercy and Severity. Taming the inner beast through spiritual fortitude rather than brute force." },
+        "4-6": { title: "Path 20: Yod", trans: "The Hermit", desc: "The solitary journey of light descending from Chesed to illuminate the center. Introspective wisdom." },
+        "4-7": { title: "Path 21: Kaph", trans: "Wheel of Fortune", desc: "The expansive cycles of Jupiter meeting the emotional drives of Venus. Understanding the turning tides of fate." },
+        "5-6": { title: "Path 22: Lamed", trans: "Justice", desc: "The harsh calibration of the soul. Geburah's severity maintaining the perfect, exact balance required in Tiphereth." },
+        "5-8": { title: "Path 23: Mem", trans: "The Hanged Man", desc: "Submission to the divine will. The sacrifice of the lower intellect to the purifying fires of severity." },
+        "6-7": { title: "Path 24: Nun", trans: "Death", desc: "The transformative dissolution of the ego. The necessary spiritual decay that precedes rebirth into beauty." },
+        "6-9": { title: "Path 25: Samekh", trans: "Temperance", desc: "The straight path of the arrow ascending from the astral foundation directly into the solar heart. Spiritual alchemy." },
+        "6-8": { title: "Path 26: Ayin", trans: "The Devil", desc: "Confronting the illusions of the material and intellectual mind. Realizing that the chains binding you are of your own making." },
+        "7-8": { title: "Path 27: Peh", trans: "The Tower", desc: "The violent destruction of false intellectual constructs by the raw, untamed forces of nature and emotion." },
+        "7-9": { title: "Path 28: Tzaddi", trans: "The Star", desc: "The emotional and natural currents channeling into the astral foundation. Hope, inspiration, and cosmic connection." },
+        "7-10": { title: "Path 29: Qoph", trans: "The Moon", desc: "The descent of pure emotion and instinct into the physical realm. Navigating the dark, dream-like tides of nature." },
+        "8-9": { title: "Path 30: Resh", trans: "The Sun", desc: "The illuminating intellect structuring the astral plane. The clear light of logic burning away astral illusions." },
+        "8-10": { title: "Path 31: Shin", trans: "Judgement", desc: "The descent of the fiery intellect into the material world. The awakening call that animates the physical kingdom." },
+        "9-10": { title: "Path 32: Tau", trans: "The Universe", desc: "The final veil. The transition from the astral blueprint into solid, dense physical reality. The completion of the Great Work." }
+    };
+    const nightsideTunnels = {
+        "1-2": { title: "Tunnel: Amprodias", trans: "The Vampiric Sylph", desc: "The chaotic anti-spark. The terrifying inversion of the Fool, leaping backwards into the disintegration of the Abyss." },
+        "1-3": { title: "Tunnel: Baratchial", trans: "The Poisoner", desc: "The sorcery of unraveling. Reversing the primal will to dismantle reality and flood it with the darkness of the void." },
+        "1-6": { title: "Tunnel: Gargophias", trans: "The Lemur", desc: "The bleeding of the Abyss directly into the corrupted heart of the Black Sun. A violent intrusion of non-being." },
+        "2-3": { title: "Tunnel: Dagdagiel", trans: "The Babalon Shadow", desc: "The anti-womb. The incestuous union of chaos and formlessness generating the infinite static of the Qliphoth." },
+        "2-6": { title: "Tunnel: Hemethterith", trans: "The Herd", desc: "The imposition of tyrannical, maddening order upon the Black Sun. The crushing weight of dark authority." },
+        "2-4": { title: "Tunnel: Uriens", trans: "The Blood-Dripper", desc: "The channeling of chaotic static into the architecture of cosmic destruction and the smiting of worlds." },
+        "3-6": { title: "Tunnel: Zamradiel", trans: "The Clashing", desc: "The dark labyrinth organizing the isolation of the Black Sun. Embracing the void to isolate the self from the divine." },
+        "3-5": { title: "Tunnel: Characith", trans: "The Black Dragon", desc: "The vehicle of wrath. Carrying the formless darkness of the dark mother into the merciless inferno of Golachab." },
+        "4-5": { title: "Tunnel: Temphioth", trans: "The Flaming Beast", desc: "The alliance of the Smiters and the Flaming Ones. A pure conduit of unadulterated, cosmic malice and destruction." },
+        "4-6": { title: "Tunnel: Yamatu", trans: "The Scythe", desc: "The dark introspection that weaponizes the ego. Drawing the power of cosmic destruction into the isolated self." },
+        "4-7": { title: "Tunnel: Kurgasia", trans: "The Smiter", desc: "The turning of the dark wheel. Dispersing the energy of destruction through the ravens of uncontrolled passion." },
+        "5-6": { title: "Tunnel: Lafcursiax", trans: "The Beheader", desc: "The horrific calibration of the Black Sun. Golachab's cruelty maintaining the terrible, isolated focus of Thagirion." },
+        "5-8": { title: "Tunnel: Malkunofat", trans: "The Deep One", desc: "Submission to the inferno. The dark intellect willfully sacrificing itself to the purifying fires of demonic severity." },
+        "6-7": { title: "Tunnel: Niantiel", trans: "The Brazen", desc: "The necromantic putrefaction of the ego. The necessary decay that precedes the apotheosis of the warlord." },
+        "6-9": { title: "Tunnel: Saksaksalim", trans: "The Shadow Weaver", desc: "The inverted arrow. The descent from the Black Sun into the bloody, nightmare-fueled astral realms of Gamaliel." },
+        "6-8": { title: "Tunnel: A'ano'nin", trans: "The Eye of the Void", desc: "Embracing the chains of the dark intellect. Realizing that true power comes from mastering the toxic illusions of Samael." },
+        "7-8": { title: "Tunnel: Parfaxitas", trans: "The Striker", desc: "The violent clash between the toxic intellect and uncontrolled passion, resulting in the shattering of sanity." },
+        "7-9": { title: "Tunnel: Tzuflifu", trans: "The Lightning", desc: "The dark emotional and martial currents feeding the bloody astral moon. Inspiration drawn from nightmare and war." },
+        "7-10": { title: "Tunnel: Qulielfi", trans: "The Illusionist", desc: "The descent of raw, martial lust into the physical shadow. Navigating the dark, predatory tides of the earthly night." },
+        "8-9": { title: "Tunnel: Raflifu", trans: "The Sun of Night", desc: "The toxic intellect structuring the nightmares of Gamaliel. Using madness to reshape the astral plane." },
+        "8-10": { title: "Tunnel: Shalicu", trans: "The Judgement of Death", desc: "The descent of the dark intellect into the material world. The awakening of the trickster within the physical shadow." },
+        "9-10": { title: "Tunnel: Thantifaxath", trans: "The Ghoul", desc: "The gateway of the vampire. The bloody astral plane bleeding into the dense physical shadow, completing the Nightside descent." }
+    };
+
+    /* =========================================================
+       OATH GATE LOGIC
+       ========================================================= */
+    function checkOath() {
+        const input = document.getElementById('oath-input').value.trim().toLowerCase();
+        const gate = document.getElementById('warning-gate');
+        const app = document.getElementById('book-app');
+        const errorMessage = document.getElementById('oath-error');
+        if (input === "i accept the oath") {
+            errorMessage.style.opacity = "0";
+            gate.classList.add('gate-shattered');
+            setTimeout(() => {
+                gate.style.display = 'none';
+                app.style.display = 'flex';
+                setTimeout(() => { app.style.opacity = "1"; }, 50);
+            }, 2000);
+        } else {
+            errorMessage.style.opacity = "1";
+            document.getElementById('oath-input').style.borderBottom = "2px solid #ff5555";
+            setTimeout(() => { document.getElementById('oath-input').style.borderBottom = "2px solid var(--blood-red)"; }, 500);
+        }
+    }
+    document.getElementById('oath-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') checkOath(); });
+
+    /* =========================================================
+       TEMPLE MODAL LOGIC
+       ========================================================= */
+    function showModal(title, text, btnText, callback) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-text').innerText = text;
+        const btn = document.getElementById('modal-btn');
+        btn.innerText = btnText;
+        btn.onclick = () => {
+            document.getElementById('temple-modal-overlay').classList.remove('active');
+            callback();
+        };
+        document.getElementById('temple-modal-overlay').classList.add('active');
+    }
+
+    /* =========================================================
+       BOOK PROGRESSION LOGIC (BOOKS 1 -> 2 -> 3)
+       ========================================================= */
+    let currentBookIndex = 1; 
+    let currentModuleIndex = 0;
+    let currentStepIndex = 0;
+    let highestUnlockedModule = 0; 
+
+    function getActiveBookData() {
+        if(currentBookIndex === 1) return { title: "Book 1: Queen of Hell", data: bookOneData };
+        if(currentBookIndex === 2) return { title: "Book 2: The Red King", data: bookTwoData };
+        return { title: "Book 3: The Scorpion God", data: bookThreeData };
+    }
+
+    function initMenu() {
+        const bookObj = getActiveBookData();
+        const sidebar = document.getElementById('sidebar-nav');
+        document.getElementById('sidebar-book-title').innerText = bookObj.title;
+        
+        Array.from(sidebar.children).forEach(child => { 
+            if (child.classList && child.classList.contains('nav-btn')) {
+                child.remove(); 
+            }
+        });
+
+        bookObj.data.forEach((mod, index) => {
+            const btn = document.createElement('button');
+            const cleanTitle = mod.title.split(':')[0]; 
+            
+            if (index > highestUnlockedModule) {
+                btn.className = 'nav-btn locked';
+                btn.innerHTML = `🔒 ${cleanTitle}`;
+                btn.onclick = () => { };
+            } else {
+                btn.className = 'nav-btn';
+                btn.innerHTML = cleanTitle;
+                btn.onclick = () => loadModule(index);
+            }
+            
+            sidebar.appendChild(btn);
+        });
+        
+        loadModule(currentModuleIndex);
+    }
+
+    function loadModule(index) {
+        currentModuleIndex = index;
+        currentStepIndex = 0;
+        const activeData = getActiveBookData().data;
+        const mod = activeData[index];
+
+        document.querySelectorAll('.nav-btn').forEach((btn, i) => { 
+            if (!btn.classList.contains('locked')) {
+                btn.classList.toggle('active', i === index); 
+            }
+        });
+
+        document.getElementById('ui-module-title').innerText = mod.title;
+        const warnBanner = document.getElementById('ui-module-warning');
+        if (mod.warning) { warnBanner.innerHTML = mod.warning; warnBanner.style.display = 'inline-block'; } 
+        else { warnBanner.style.display = 'none'; }
+
+        const stepsContainer = document.getElementById('dynamic-steps-container');
+        stepsContainer.innerHTML = '';
+        const tracker = document.getElementById('ui-tracker');
+        tracker.innerHTML = '';
+
+        mod.steps.forEach((step, i) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i === 0 ? 'active' : ''}`;
+            tracker.appendChild(dot);
+
+            let html = `<div class="step-container ${i === 0 ? 'active' : ''}" id="step-${i}"><h2>${step.title}</h2>`;
+            if(step.theory) html += `<p class="theory-text">${step.theory}</p>`;
+            if(step.instruction) html += `<div class="instruction-block"><strong>Stage Direction & Focus</strong>${step.instruction}</div>`;
+            if(step.incantation) html += `<div class="incantation-block">${step.incantation.replace(/\n/g, '<br>')}</div>`;
+            html += `</div>`;
+            stepsContainer.innerHTML += html;
+        });
+
+        document.getElementById('ui-controls').style.display = 'flex';
+        updateControls();
+    }
+
+    function changeStep(direction) {
+        document.getElementById(`step-${currentStepIndex}`).classList.remove('active');
+        document.getElementById('ui-tracker').children[currentStepIndex].classList.remove('active');
+        currentStepIndex += direction;
+        document.getElementById(`step-${currentStepIndex}`).classList.add('active');
+        document.getElementById('ui-tracker').children[currentStepIndex].classList.add('active');
+        updateControls();
+    }
+
+    function updateControls() {
+        const activeData = getActiveBookData().data;
+        const mod = activeData[currentModuleIndex];
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        btnPrev.disabled = currentStepIndex === 0;
+
+        if (currentStepIndex === mod.steps.length - 1) {
+            btnNext.innerText = "Conclude Module";
+            btnNext.onclick = () => {
+                if(currentModuleIndex < activeData.length - 1) {
+                    
+                    if (highestUnlockedModule <= currentModuleIndex) {
+                        highestUnlockedModule = currentModuleIndex + 1;
+                    }
+                    currentModuleIndex++;
+                    initMenu();
+                    
+                } else {
+                    if (currentBookIndex === 1) {
+                        showModal("Book 1 Complete", "The Path to The Red King is now open.", "Enter Book 2", () => {
+                            currentBookIndex = 2; 
+                            highestUnlockedModule = 0; 
+                            currentModuleIndex = 0;
+                            initMenu();
+                        });
+                    } else if (currentBookIndex === 2) {
+                        showModal("Book 2 Complete", "The Red King is Complete. The Path to The Scorpion God is now open.", "Enter Book 3", () => {
+                            currentBookIndex = 3; 
+                            highestUnlockedModule = 0; 
+                            currentModuleIndex = 0;
+                            initMenu();
+                        });
+                    } else if (currentBookIndex === 3) {
+                        showModal("The Great Work is Sealed", "The Shinhwhurus has returned. The final path to the Tree is now open.", "Approach The Tree", () => {
+                            document.getElementById('book-app').style.display = 'none';
+                            const treeApp = document.getElementById('tree-app');
+                            treeApp.style.display = 'flex';
+                            document.getElementById('abyss-canvas').style.display = 'block';
+                            setTimeout(() => { treeApp.style.opacity = '1'; }, 50);
+                            initTree();
+                        });
+                    }
+                }
+            };
+        } else {
+            btnNext.innerText = "Proceed";
+            btnNext.onclick = () => changeStep(1);
+        }
+    }
+
+    initMenu(); 
+
+    /* =========================================================
+       THE TREE LOGIC
+       ========================================================= */
+    let currentMode = 'night'; 
+    const svgOverlay = document.getElementById('tunnels-svg');
+    const nodesContainer = document.getElementById('nodes-container');
+    const panelContent = document.getElementById('panel-content');
+    const canvas = document.getElementById('abyss-canvas');
+    const ctx = canvas.getContext('2d');
+    let particlesArray = [];
+
+    function initTree() {
+        renderTree();
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        initParticles();
+        animateParticles();
+    }
+
+    function renderTree() {
+        svgOverlay.innerHTML = ''; nodesContainer.innerHTML = '';
+        const isNight = currentMode === 'night';
+        const activeNodes = isNight ? nightsideNodes : daysideNodes;
+
+        connections.forEach(conn => {
+            const posA = conn[0]; const posB = conn[1];
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const hitbox = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            hitbox.classList.add('tunnel-hitbox');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            path.classList.add('tunnel-line'); path.id = `path-${posA}-${posB}`;
+            
+            const setCoords = (line) => {
+                let y1 = isNight ? 100 - geometry[posA].y : geometry[posA].y;
+                let y2 = isNight ? 100 - geometry[posB].y : geometry[posB].y;
+                line.setAttribute('x1', `${geometry[posA].x}%`); line.setAttribute('y1', `${y1}%`);
+                line.setAttribute('x2', `${geometry[posB].x}%`); line.setAttribute('y2', `${y2}%`);
+            };
+            setCoords(hitbox); setCoords(path);
+
+            hitbox.onclick = () => activatePath(posA, posB);
+            path.onclick = () => activatePath(posA, posB);
+            g.appendChild(hitbox); g.appendChild(path); svgOverlay.appendChild(g);
+        });
+
+        for (let pos in geometry) {
+            const data = activeNodes[pos];
+            const node = document.createElement('div');
+            node.className = 'sphere-node'; node.id = `node-${pos}`;
+            
+            let y = isNight ? 100 - geometry[pos].y : geometry[pos].y;
+            node.style.left = `${geometry[pos].x}%`; node.style.top = `${y}%`;
+            node.innerText = data.id;
+
+            const label = document.createElement('div');
+            label.className = 'sphere-label'; label.innerText = data.name;
+            node.appendChild(label);
+            node.onclick = () => activateNode(pos);
+            nodesContainer.appendChild(node);
+        }
+    }
+
+    function resetActiveStates() {
+        document.querySelectorAll('.sphere-node').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.tunnel-line').forEach(p => p.classList.remove('active'));
+        document.getElementById('initial-prompt').style.display = 'none';
+        panelContent.classList.remove('visible');
+    }
+
+    function activateNode(pos) {
+        resetActiveStates();
+        document.getElementById(`node-${pos}`).classList.add('active');
+        connections.forEach(conn => {
+            if (conn[0] == pos || conn[1] == pos) { document.getElementById(`path-${conn[0]}-${conn[1]}`).classList.add('active'); }
+        });
+
+        const activeNodes = currentMode === 'night' ? nightsideNodes : daysideNodes;
+        const data = activeNodes[pos];
+        
+        setTimeout(() => {
+            document.getElementById('ui-subtitle').innerText = `Sphere ${data.id}`;
+            document.getElementById('ui-title').innerText = data.name;
+            document.getElementById('ui-translation').innerText = data.trans;
+            document.getElementById('ui-translation').style.display = 'block';
+            document.getElementById('ui-ruler').innerText = `Ruling Entity: ${data.ruler}`;
+            document.getElementById('ui-ruler').style.display = 'inline-block';
+            document.getElementById('ui-desc').innerText = data.desc;
+            document.getElementById('ui-gnosis-title').innerText = "Initiatory Gnosis";
+            document.getElementById('ui-gnosis').innerText = data.gnosis;
+            panelContent.classList.add('visible');
+        }, 300);
+    }
+
+    function activatePath(posA, posB) {
+        resetActiveStates();
+        document.getElementById(`path-${posA}-${posB}`).classList.add('active');
+        document.getElementById(`node-${posA}`).classList.add('active');
+        document.getElementById(`node-${posB}`).classList.add('active');
+
+        const pathKey = `${posA}-${posB}`;
+        const activePaths = currentMode === 'night' ? nightsideTunnels : daysidePaths;
+        const data = activePaths[pathKey];
+        const nodes = currentMode === 'night' ? nightsideNodes : daysideNodes;
+        const nameA = nodes[posA].name;
+        const nameB = nodes[posB].name;
+
+        setTimeout(() => {
+            document.getElementById('ui-subtitle').innerText = `Connection: ${nameA} ↔ ${nameB}`;
+            document.getElementById('ui-title').innerText = data.title;
+            document.getElementById('ui-translation').innerText = data.trans;
+            document.getElementById('ui-translation').style.display = 'block';
+            document.getElementById('ui-ruler').style.display = 'none'; 
+            document.getElementById('ui-desc').innerText = data.desc;
+            document.getElementById('ui-gnosis-title').innerText = "Esoteric Path Lore";
+            document.getElementById('ui-gnosis').innerText = "Traversal of this line requires the harmonization (or weaponization) of the energies of both connected spheres.";
+            panelContent.classList.add('visible');
+        }, 300);
+    }
+
+    function setMode(mode) {
+        if (currentMode === mode) return;
+        currentMode = mode;
+        document.getElementById('btn-night').classList.toggle('active', mode === 'night');
+        document.getElementById('btn-day').classList.toggle('active', mode === 'day');
+        
+        if (mode === 'day') document.body.classList.add('dayside');
+        else document.body.classList.remove('dayside');
+
+        resetActiveStates();
+        document.getElementById('initial-prompt').style.display = 'block';
+        renderTree();
+        particlesArray.forEach(p => p.shiftColor(mode));
+    }
+
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    
+    class Particle {
+        constructor() { this.init(); this.y = Math.random() * canvas.height; }
+        init() {
+            this.x = Math.random() * canvas.width; this.y = canvas.height + 10;
+            this.size = Math.random() * 4 + 1; this.speedX = Math.random() * 0.5 - 0.25;
+            this.speedY = Math.random() * -1 - 0.2; this.alpha = Math.random() * 0.5;
+            this.pulse = Math.random() * 0.02; this.shiftColor(currentMode);
+        }
+        shiftColor(mode) {
+            if (mode === 'night') this.color = Math.random() > 0.5 ? 'rgba(123, 0, 255, ' : 'rgba(26, 5, 37, ';
+            else this.color = Math.random() > 0.5 ? 'rgba(57, 255, 20, ' : 'rgba(230, 255, 230, ';
+        }
+        update() {
+            this.x += this.speedX; this.y += this.speedY; this.alpha += this.pulse;
+            if(this.alpha >= 0.5 || this.alpha <= 0.05) this.pulse *= -1;
+            if (this.y < -10) this.init();
+        }
+        draw() {
+            ctx.fillStyle = this.color + this.alpha + ')'; ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 10; ctx.shadowColor = this.color + '0.5)';
+        }
+    }
+
+    function initParticles() { for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < particlesArray.length; i++) { particlesArray[i].update(); particlesArray[i].draw(); }
+        requestAnimationFrame(animateParticles);
+    }
+</script>
+</body>
+</html>
